@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -29,7 +31,8 @@ class _MainViewState extends State<MainView> {
   Color _selectedColor = Colors.black;
 
   Future<void> saveImage() async {
-    var dirs = await getExternalStorageDirectories(type: StorageDirectory.pictures);
+    var dirs =
+        await getExternalStorageDirectories(type: StorageDirectory.pictures);
     print("${dirs.length}, $dirs");
   }
 
@@ -47,6 +50,12 @@ class _MainViewState extends State<MainView> {
     _blackColorButtonKey.currentState.updateSelectedColor(_selectedColor);
   }
 
+  Future<void> printFuture(Future<double> val) async {
+    var res = await val;
+    print("res = $res");
+    return;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -56,9 +65,8 @@ class _MainViewState extends State<MainView> {
             PaintWidget(_selectedColor, 0.0, key: _paintWidgetKey),
             Align(
                 alignment: Alignment.centerRight,
-                child: Column(
-                  mainAxisSize: MainAxisSize.max,
-                  children: <Widget>[
+                child:
+                    Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
                   SizedBox(height: 15),
                   PaletteButton(
                     Colors.white,
@@ -109,7 +117,7 @@ class _MainViewState extends State<MainView> {
                       setState(() {
                         _selectedColor = color;
                         updateSelectedColor(color);
-                        });
+                      });
                     },
                   ),
                   Spacer(),
@@ -162,7 +170,23 @@ class _MainViewState extends State<MainView> {
                     icon: Icons.line_weight,
                     onPressed: () {
                       print("Brush width clicked");
-                      
+                      var thickness = showGeneralDialog<double>(
+                          context: context,
+                          barrierDismissible: true,
+                          barrierLabel: "",
+                          barrierColor: Color.fromARGB(0, 1, 1, 1),
+                          transitionDuration: Duration(milliseconds: 100),
+                          pageBuilder:
+                              (context, animation, secondaryAnimation) {
+                            return new Center(
+                                child: RaisedButton(
+                              color: Colors.red,
+                              onPressed: () {
+                                Navigator.of(context).pop(11.0);
+                              },
+                            ));
+                          });
+                      printFuture(thickness);
                     },
                   ),
                 ])),
@@ -189,18 +213,21 @@ class _MainViewState extends State<MainView> {
                 ])),
             Align(
                 alignment: Alignment.bottomLeft,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: <Widget>[
+                child:
+                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   ToolButton(
                     icon: Icons.save,
                     disabled: kIsWeb,
                     onPressed: () {
                       print("Save clicked");
-                      saveImage().whenComplete(() {print("complete");} );
+                      saveImage().whenComplete(() {
+                        print("complete");
+                      });
                     },
                   ),
-                  const SizedBox(height: 10,),
+                  const SizedBox(
+                    height: 10,
+                  ),
                   ToolButton(
                     icon: Icons.delete_outline,
                     onPressed: () {
@@ -208,7 +235,9 @@ class _MainViewState extends State<MainView> {
                       _paintWidgetKey.currentState.clean();
                     },
                   ),
-                  const SizedBox(height: 15,),
+                  const SizedBox(
+                    height: 15,
+                  ),
                 ]))
           ],
         ));
