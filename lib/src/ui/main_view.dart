@@ -155,9 +155,21 @@ class _MainViewState extends State<MainView> {
                   const SizedBox(height: 15),
                 ])),
             Align(
+                alignment: Alignment.bottomLeft,
+                child: Column(children: <Widget>[
+                  SizedBox(height: 20),
+                  ToolButton(
+                    icon: Icons.line_weight,
+                    onPressed: () {
+                      print("Brush width clicked");
+                      
+                    },
+                  ),
+                ])),
+            Align(
                 alignment: Alignment.centerLeft,
                 child: Column(children: <Widget>[
-                  Spacer(flex: 6),
+                  const Spacer(flex: 6),
                   ToolButton(
                     icon: Icons.undo,
                     onPressed: () {
@@ -165,7 +177,7 @@ class _MainViewState extends State<MainView> {
                       _paintWidgetKey.currentState.undo();
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   ToolButton(
                     icon: Icons.redo,
                     onPressed: () {
@@ -173,7 +185,7 @@ class _MainViewState extends State<MainView> {
                       _paintWidgetKey.currentState.redo();
                     },
                   ),
-                  Spacer(flex: 6),
+                  const Spacer(flex: 6),
                 ])),
             Align(
                 alignment: Alignment.bottomLeft,

@@ -31,7 +31,8 @@ class PaintWidgetState extends State<PaintWidget> {
   _CustomPainter _painter;
 
   double transformY(double y) {
-    return y - 56;
+    //return y - 56;
+    return y;
   }
 
   void undo() {

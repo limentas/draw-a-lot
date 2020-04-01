@@ -23,7 +23,7 @@ class PaletteButtonState extends State<PaletteButton> {
     selected = selectedColor == myColor;
   }
 
-  final double _defaultButtonElevation = 4.0;
+  final double _defaultButtonElevation = 5.0;
   final double _toggledButtonElevation = 0.0;
 
   void updateSelectedColor(Color selectedColor) {
@@ -38,18 +38,21 @@ class PaletteButtonState extends State<PaletteButton> {
 
   @override
   Widget build(BuildContext context) {
-    return new RaisedButton(
-      color: widget._myColor,
-      shape: CircleBorder(),
-      elevation: selected ? _toggledButtonElevation : _defaultButtonElevation,
-      focusElevation:
-          selected ? _toggledButtonElevation : _defaultButtonElevation,
-      hoverElevation:
-          selected ? _toggledButtonElevation : _defaultButtonElevation,
-      highlightElevation: _toggledButtonElevation,
-      onPressed: () {
-        widget._onPressed(widget._myColor);
-      },
-    );
+    return ButtonTheme(
+        height: selected ? 40 : 60,
+        child: RaisedButton(
+          color: widget._myColor,
+          shape: CircleBorder(),
+          elevation:
+              selected ? _toggledButtonElevation : _defaultButtonElevation,
+          focusElevation:
+              selected ? _toggledButtonElevation : _defaultButtonElevation,
+          hoverElevation:
+              selected ? _toggledButtonElevation : _defaultButtonElevation,
+          highlightElevation: _toggledButtonElevation,
+          onPressed: () {
+            widget._onPressed(widget._myColor);
+          },
+        ));
   }
 }
