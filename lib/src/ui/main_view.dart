@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 import 'paint_widget.dart';
 import 'palette_button.dart';
 import 'tool_button.dart';
+import 'thickness_dialog.dart';
 
 class MainView extends StatefulWidget {
   MainView({Key key, this.title}) : super(key: key);
@@ -28,7 +29,8 @@ class _MainViewState extends State<MainView> {
   final _purpleColorButtonKey = GlobalKey<PaletteButtonState>();
   final _blackColorButtonKey = GlobalKey<PaletteButtonState>();
 
-  Color _selectedColor = Colors.black;
+  Color _selectedColor = Colors.lightBlue;
+  double _thickness = 10;
 
   Future<void> saveImage() async {
     var dirs =
@@ -37,7 +39,6 @@ class _MainViewState extends State<MainView> {
   }
 
   void updateSelectedColor(Color color) {
-    //setState(() {_selectedColor = color;});
     _selectedColor = color;
     _whiteColorButtonKey.currentState.updateSelectedColor(_selectedColor);
     _redColorButtonKey.currentState.updateSelectedColor(_selectedColor);
@@ -50,10 +51,12 @@ class _MainViewState extends State<MainView> {
     _blackColorButtonKey.currentState.updateSelectedColor(_selectedColor);
   }
 
-  Future<void> printFuture(Future<double> val) async {
+  Future<void> updateThickness(Future<double> val) async {
     var res = await val;
-    print("res = $res");
-    return;
+    if (res != null) {
+      print("New thickness: $res");
+      _paintWidgetKey.currentState.penWidth = _thickness = res;
+    }
   }
 
   @override
@@ -62,7 +65,7 @@ class _MainViewState extends State<MainView> {
         extendBodyBehindAppBar: false,
         body: Stack(
           children: <Widget>[
-            PaintWidget(_selectedColor, 0.0, key: _paintWidgetKey),
+            PaintWidget(_selectedColor, _thickness, key: _paintWidgetKey),
             Align(
                 alignment: Alignment.centerRight,
                 child:
@@ -167,26 +170,11 @@ class _MainViewState extends State<MainView> {
                 child: Column(children: <Widget>[
                   SizedBox(height: 20),
                   ToolButton(
-                    icon: Icons.line_weight,
+                    imageIcon: AssetImage('icons/brush_thickness.png'),
                     onPressed: () {
                       print("Brush width clicked");
-                      var thickness = showGeneralDialog<double>(
-                          context: context,
-                          barrierDismissible: true,
-                          barrierLabel: "",
-                          barrierColor: Color.fromARGB(0, 1, 1, 1),
-                          transitionDuration: Duration(milliseconds: 100),
-                          pageBuilder:
-                              (context, animation, secondaryAnimation) {
-                            return new Center(
-                                child: RaisedButton(
-                              color: Colors.red,
-                              onPressed: () {
-                                Navigator.of(context).pop(11.0);
-                              },
-                            ));
-                          });
-                      printFuture(thickness);
+                      var thickness = showThicknessDialog(context, 80, 20);
+                      updateThickness(thickness);
                     },
                   ),
                 ])),
@@ -195,7 +183,8 @@ class _MainViewState extends State<MainView> {
                 child: Column(children: <Widget>[
                   const Spacer(flex: 6),
                   ToolButton(
-                    icon: Icons.undo,
+                    iconData: Icons.undo,
+                    color: Colors.blue[900],
                     onPressed: () {
                       print("Undo clicked");
                       _paintWidgetKey.currentState.undo();
@@ -203,7 +192,8 @@ class _MainViewState extends State<MainView> {
                   ),
                   const Spacer(),
                   ToolButton(
-                    icon: Icons.redo,
+                    iconData: Icons.redo,
+                    color: Colors.blue[900],
                     onPressed: () {
                       print("Redo clicked");
                       _paintWidgetKey.currentState.redo();
@@ -216,7 +206,8 @@ class _MainViewState extends State<MainView> {
                 child:
                     Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   ToolButton(
-                    icon: Icons.save,
+                    iconData: Icons.save,
+                    color: Colors.indigo[900],
                     disabled: kIsWeb,
                     onPressed: () {
                       print("Save clicked");
@@ -229,7 +220,8 @@ class _MainViewState extends State<MainView> {
                     height: 10,
                   ),
                   ToolButton(
-                    icon: Icons.delete_outline,
+                    iconData: Icons.delete_outline,
+                    color: Colors.red[900],
                     onPressed: () {
                       print("Clean clicked");
                       _paintWidgetKey.currentState.clean();

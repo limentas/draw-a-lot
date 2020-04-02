@@ -1,20 +1,38 @@
 import 'package:flutter/material.dart';
 
-class ToolButton extends StatelessWidget {  
-  ToolButton({Key key, this.icon, this.onPressed, this.disabled: false}):
-    super(key: key);
+class ToolButton extends StatelessWidget {
+  ToolButton(
+      {Key key,
+      this.imageIcon,
+      this.iconData,
+      this.color,
+      this.onPressed,
+      this.disabled: false})
+      : super(key: key);
 
   final double _defaultButtonElevation = 4.0;
   final double _toggledButtonElevation = 0.0;
 
   final void Function() onPressed;
-  final IconData icon;
+  final ImageProvider<dynamic> imageIcon;
+  final IconData iconData;
+  final Color color;
   final bool disabled;
 
   @override
   Widget build(BuildContext context) {
     return new RaisedButton(
-      child: Icon(icon, size: 40,),
+      child: imageIcon != null
+          ? ImageIcon(
+              imageIcon,
+              size: 32,
+              color: color,
+            )
+          : Icon(
+              iconData,
+              size: 40,
+              color: color,
+            ),
       color: Colors.white,
       shape: CircleBorder(),
       elevation: _defaultButtonElevation,
