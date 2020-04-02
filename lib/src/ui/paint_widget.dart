@@ -56,10 +56,12 @@ class PaintWidgetState extends State<PaintWidget> {
 
   Future<void> saveToFile(File file) async {
     var recorder = new PictureRecorder();
-    _painter._paint(Canvas(recorder), context.size);
+    var imageSize = MediaQuery.of(context).size * MediaQuery.of(context).devicePixelRatio;
+    print("image size = $imageSize");
+    _painter._paint(Canvas(recorder), imageSize, MediaQuery.of(context).devicePixelRatio);
     var image = await recorder
         .endRecording()
-        .toImage(context.size.width.toInt(), context.size.height.toInt());
+        .toImage(imageSize.width.toInt(), imageSize.height.toInt());
     var imageBytes = await image.toByteData(format: ImageByteFormat.png);
     final buffer = imageBytes.buffer;
     await file.writeAsBytes(buffer.asUint8List());
@@ -101,7 +103,8 @@ class _CustomPainter extends CustomPainter {
 
   List<PathPart> _pathes;
 
-  void _paint(Canvas canvas, Size size) {
+  void _paint(Canvas canvas, Size size, double scaleFactor) {
+    canvas.scale(scaleFactor);
     canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
         new Paint()..color = Colors.white);
     for (var part in _pathes) {
@@ -119,7 +122,7 @@ class _CustomPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    _paint(canvas, size);
+    _paint(canvas, size, 1.0);
   }
 
   @override

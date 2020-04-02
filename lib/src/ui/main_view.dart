@@ -1,8 +1,11 @@
 import 'dart:async';
+import 'dart:io';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:ext_storage/ext_storage.dart';
+import 'package:intl/intl.dart';
 import 'paint_widget.dart';
 import 'palette_button.dart';
 import 'tool_button.dart';
@@ -30,12 +33,29 @@ class _MainViewState extends State<MainView> {
   final _blackColorButtonKey = GlobalKey<PaletteButtonState>();
 
   Color _selectedColor = Colors.lightBlue;
-  double _thickness = 10;
+  double _thickness = 20;
 
   Future<void> saveImage() async {
-    var dirs =
-        await getExternalStorageDirectories(type: StorageDirectory.pictures);
-    print("${dirs.length}, $dirs");
+    try {
+      final picturesPath = await ExtStorage.getExternalStoragePublicDirectory(
+          ExtStorage.DIRECTORY_PICTURES);
+      final myImagePath = '$picturesPath/DrawALot';
+      final myImgDir = new Directory(myImagePath).create();
+
+      String newFileName;
+      var i = 0;
+      var formatter = new DateFormat('yyyyMMdd');
+      do {
+        newFileName =
+            "$myImagePath/drawing_${formatter.format(DateTime.now())}_${i++}.png";
+      } while (FileSystemEntity.typeSync(newFileName) !=
+          FileSystemEntityType.notFound);
+
+      var file = await myImgDir.then((value) => new File(newFileName).create());
+      _paintWidgetKey.currentState.saveToFile(file);
+    } catch (err) {
+      print("Error while saving: $err");
+    }
   }
 
   void updateSelectedColor(Color color) {
@@ -63,6 +83,7 @@ class _MainViewState extends State<MainView> {
   Widget build(BuildContext context) {
     return Scaffold(
         extendBodyBehindAppBar: false,
+        resizeToAvoidBottomPadding: false,
         body: Stack(
           children: <Widget>[
             PaintWidget(_selectedColor, _thickness, key: _paintWidgetKey),
@@ -70,7 +91,7 @@ class _MainViewState extends State<MainView> {
                 alignment: Alignment.centerRight,
                 child:
                     Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
-                  SizedBox(height: 15),
+                  const SizedBox(height: 15),
                   PaletteButton(
                     Colors.white,
                     _selectedColor,
@@ -80,7 +101,7 @@ class _MainViewState extends State<MainView> {
                       updateSelectedColor(color);
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   PaletteButton(
                     Colors.red,
                     _selectedColor,
@@ -90,7 +111,7 @@ class _MainViewState extends State<MainView> {
                       updateSelectedColor(color);
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   PaletteButton(
                     Colors.orange,
                     _selectedColor,
@@ -100,7 +121,7 @@ class _MainViewState extends State<MainView> {
                       updateSelectedColor(color);
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   PaletteButton(
                     Colors.yellow,
                     _selectedColor,
@@ -110,7 +131,7 @@ class _MainViewState extends State<MainView> {
                       updateSelectedColor(color);
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   PaletteButton(
                     Colors.green,
                     _selectedColor,
@@ -123,7 +144,7 @@ class _MainViewState extends State<MainView> {
                       });
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   PaletteButton(
                     Colors.lightBlue,
                     _selectedColor,
@@ -133,7 +154,7 @@ class _MainViewState extends State<MainView> {
                       updateSelectedColor(color);
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   PaletteButton(
                     Colors.blue[900],
                     _selectedColor,
@@ -143,7 +164,7 @@ class _MainViewState extends State<MainView> {
                       updateSelectedColor(color);
                     },
                   ),
-                  Spacer(),
+                  const Spacer(),
                   PaletteButton(
                     Colors.purple[800],
                     _selectedColor,
@@ -166,21 +187,18 @@ class _MainViewState extends State<MainView> {
                   const SizedBox(height: 15),
                 ])),
             Align(
-                alignment: Alignment.bottomLeft,
+                alignment: Alignment.centerLeft,
                 child: Column(children: <Widget>[
-                  SizedBox(height: 20),
+                  SizedBox(height: 15),
                   ToolButton(
                     imageIcon: AssetImage('icons/brush_thickness.png'),
                     onPressed: () {
                       print("Brush width clicked");
-                      var thickness = showThicknessDialog(context, 80, 20);
+                      final buttonHeight = min(80, MediaQuery.of(context).size.height / 5 - 12);
+                      var thickness = showThicknessDialog(context, buttonHeight, 0);
                       updateThickness(thickness);
                     },
                   ),
-                ])),
-            Align(
-                alignment: Alignment.centerLeft,
-                child: Column(children: <Widget>[
                   const Spacer(flex: 6),
                   ToolButton(
                     iconData: Icons.undo,
@@ -200,25 +218,18 @@ class _MainViewState extends State<MainView> {
                     },
                   ),
                   const Spacer(flex: 6),
-                ])),
-            Align(
-                alignment: Alignment.bottomLeft,
-                child:
-                    Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
                   ToolButton(
                     iconData: Icons.save,
                     color: Colors.indigo[900],
                     disabled: kIsWeb,
                     onPressed: () {
-                      print("Save clicked");
+                      print("Saving picture...");
                       saveImage().whenComplete(() {
-                        print("complete");
+                        print("saving complete");
                       });
                     },
                   ),
-                  const SizedBox(
-                    height: 10,
-                  ),
+                  const Spacer(),
                   ToolButton(
                     iconData: Icons.delete_outline,
                     color: Colors.red[900],
@@ -230,7 +241,7 @@ class _MainViewState extends State<MainView> {
                   const SizedBox(
                     height: 15,
                   ),
-                ]))
+                ])),
           ],
         ));
   }

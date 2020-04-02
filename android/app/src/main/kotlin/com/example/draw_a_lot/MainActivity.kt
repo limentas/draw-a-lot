@@ -1,4 +1,4 @@
-package com.example.draw_a_lot
+package dev.slebe.draw_a_lot
 
 import io.flutter.embedding.android.FlutterActivity
 

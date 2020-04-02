@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class PaletteButton extends StatefulWidget {
@@ -38,11 +40,14 @@ class PaletteButtonState extends State<PaletteButton> {
 
   @override
   Widget build(BuildContext context) {
+    final buttonHeight = min(60, MediaQuery.of(context).size.height / 9 - 10);
     return ButtonTheme(
-        height: selected ? 40 : 60,
+        height: selected ? buttonHeight / 1.3 : buttonHeight,
+        minWidth: 40,
         child: RaisedButton(
           color: widget._myColor,
           shape: CircleBorder(),
+          materialTapTargetSize: buttonHeight < 48 ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
           elevation:
               selected ? _toggledButtonElevation : _defaultButtonElevation,
           focusElevation:

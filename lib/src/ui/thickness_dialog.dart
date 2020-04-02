@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 Future<double> showThicknessDialog(
@@ -34,14 +36,16 @@ class ThicknessButton extends StatelessWidget {
   ThicknessButton(this.thickness);
 
   final double thickness;
-
   final double _defaultElevation = 1;
 
   @override
   Widget build(BuildContext context) {
+    final buttonHeight = min(80, MediaQuery.of(context).size.width / 12 - 10);
     return ButtonTheme(
-        height: 80,
+        height: buttonHeight,
+        minWidth: 5,
         child: RaisedButton(
+            materialTapTargetSize: buttonHeight < 48 ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
             color: Colors.white,
             elevation: _defaultElevation,
             focusElevation: _defaultElevation,
@@ -53,13 +57,16 @@ class ThicknessButton extends StatelessWidget {
             },
             child: Column(mainAxisSize: MainAxisSize.min, children: <Widget>[
               Container(
+                height: thickness,
+                width: thickness,
+                padding: EdgeInsets.all(0),
                 decoration: ShapeDecoration(
                     shape: CircleBorder(
                         side: BorderSide(
-                            color: Colors.blueGrey[900], width: thickness / 2))),
+                            color: Colors.blueGrey[900], width: thickness / MediaQuery.of(context).devicePixelRatio))),
               ),
-              SizedBox(height: 5),
-              Text("$thickness")
+              SizedBox(height: 5, width: 1),
+              Text("${thickness.toStringAsFixed(0)}",)
             ])));
   }
 }
