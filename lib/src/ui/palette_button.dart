@@ -40,14 +40,14 @@ class PaletteButtonState extends State<PaletteButton> {
 
   @override
   Widget build(BuildContext context) {
-    final buttonHeight = min(60, MediaQuery.of(context).size.height / 9 - 10);
+    final buttonSize = max(30.0, MediaQuery.of(context).size.height / 9 - 10);
     return ButtonTheme(
-        height: selected ? buttonHeight / 1.3 : buttonHeight,
-        minWidth: 40,
+        height: selected ? buttonSize * 0.7 : buttonSize,
+        minWidth: buttonSize,
         child: RaisedButton(
           color: widget._myColor,
           shape: CircleBorder(),
-          materialTapTargetSize: buttonHeight < 48 ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
+          materialTapTargetSize: buttonSize < 48 ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
           elevation:
               selected ? _toggledButtonElevation : _defaultButtonElevation,
           focusElevation:

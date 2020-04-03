@@ -23,21 +23,21 @@ class ToolButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final buttonHeight = min(80, MediaQuery.of(context).size.height / 5 - 12);
+    final buttonSize = min(max(40.0, MediaQuery.of(context).size.height / 8 - 4), 80.0);
     return new ButtonTheme(
-        height: buttonHeight,
-        minWidth: 40,
+        height: buttonSize,
+        minWidth: buttonSize,
         child: RaisedButton(
-          materialTapTargetSize: buttonHeight < 48 ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
+          materialTapTargetSize: buttonSize < 48 ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
           child: imageIcon != null
               ? ImageIcon(
                   imageIcon,
-                  size: 32,
+                  size: buttonSize * 0.55,
                   color: color,
                 )
               : Icon(
                   iconData,
-                  size: 40,
+                  size: buttonSize * 0.6,
                   color: color,
                 ),
           color: Colors.white,
