@@ -1,3 +1,4 @@
+import 'dart:collection';
 import 'dart:io';
 import 'dart:ui' as dart_ui;
 import 'package:flutter/material.dart';
@@ -23,10 +24,9 @@ class PaintWidgetState extends State<PaintWidget> {
   Color color = Colors.black;
   double penWidth = 0.0;
 
-  PathPart _pathToDraw;
-  List<PathPart> _pathesDrawn = new List<PathPart>();
-  List<PathPart> _pathesToRedo = new List<PathPart>();
-  dart_ui.Image _frameBuffer;
+  Queue<PathPart> _pathesToDraw = new Queue<PathPart>();
+  Queue<PathPart> _pathesDrawn = new Queue<PathPart>();
+  Queue<PathPart> _pathesToRedo = new Queue<PathPart>();
   dart_ui.Image _cachedBuffer;
 
   void undo() {
@@ -44,13 +44,13 @@ class PaintWidgetState extends State<PaintWidget> {
   void clean() {
     _pathesToRedo = _pathesDrawn;
     setState(() {
-      _pathesDrawn = new List<PathPart>();
+      _pathesDrawn = new Queue<PathPart>();
     });
   }
 
   Future<File> saveToFile(File file) {
     var imageBytes =
-        _drawToImageAll(context, MediaQuery.of(context).devicePixelRatio)
+        _drawToImage(context, MediaQuery.of(context).devicePixelRatio)
             .then((value) {
       return value.toByteData(format: dart_ui.ImageByteFormat.png);
     });
@@ -59,31 +59,22 @@ class PaintWidgetState extends State<PaintWidget> {
     });
   }
 
-  Future<dart_ui.Image> _drawToImageAll(
-      BuildContext context, double scaleFactor) {
+  Future<dart_ui.Image> _drawToImage(BuildContext context, double scaleFactor) {
     var recorder = new dart_ui.PictureRecorder();
     var imageSize = MediaQuery.of(context).size * scaleFactor;
-    _paintAll(Canvas(recorder), imageSize, scaleFactor);
-    return recorder
-        .endRecording()
-        .toImage(imageSize.width.toInt(), imageSize.height.toInt());
-  }
+    var canvas = Canvas(recorder);
 
-  Future<dart_ui.Image> _drawToImageIncremental(
-      BuildContext context, double scaleFactor) {
-    var recorder = new dart_ui.PictureRecorder();
-    var imageSize = MediaQuery.of(context).size * scaleFactor;
-    _paintIncremental(Canvas(recorder), imageSize);
-    return recorder
-        .endRecording()
-        .toImage(imageSize.width.toInt(), imageSize.height.toInt());
-  }
-
-  void _paintAll(Canvas canvas, Size size, double scaleFactor) {
     canvas.scale(scaleFactor);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
-        new Paint()..color = Colors.white);
-    for (var part in _pathesDrawn) {
+    if (_cachedBuffer == null) {
+      canvas.drawRect(Rect.fromLTWH(0, 0, imageSize.width, imageSize.height),
+          new Paint()..color = Colors.white);
+    } else {
+      _cachedBuffer.toByteData(format: dart_ui.ImageByteFormat.rawRgba).then((value){print("use cache = ${value.buffer.asUint8List()}");});
+      canvas.drawImage(_cachedBuffer, Offset(0, 0), Paint());
+    }
+
+    for (var part in _pathesToDraw) {
+      if (!part.completed) continue;
       canvas.drawPath(
           part.path,
           new Paint()
@@ -93,76 +84,63 @@ class PaintWidgetState extends State<PaintWidget> {
             ..strokeCap = StrokeCap.round
             ..strokeJoin = StrokeJoin.round
             ..isAntiAlias = true);
+      part.cached = true;
     }
+
+    return recorder
+        .endRecording()
+        .toImage(imageSize.width.toInt(), imageSize.height.toInt());
   }
 
-  void _paintIncremental(Canvas canvas, Size size) {
-    canvas.drawImage(_cachedBuffer, Offset(0, 0), Paint());
-    canvas.drawPath(
-        _pathToDraw.path,
-        new Paint()
-          ..color = _pathToDraw.color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = _pathToDraw.penWidth
-          ..strokeCap = StrokeCap.round
-          ..strokeJoin = StrokeJoin.round
-          ..isAntiAlias = true);
-  }
+  void _updateCacheBuffer(BuildContext context) {
+    var imageFuture = _drawToImage(context, 1.0);
 
-  void ensureBuffersCreated(BuildContext context) async {
-    dart_ui.Image image;
-    if (_frameBuffer == null || _cachedBuffer == null)
-      image = await _drawToImageAll(context, 1.0);
+    imageFuture.then((value) {
+      setState(() {
+        _cachedBuffer = value;
 
-    if (_frameBuffer == null) _frameBuffer = image;
-    if (_cachedBuffer == null) _cachedBuffer = image;
-    print("ensure $_frameBuffer $_cachedBuffer");
+        _pathesDrawn.addAll(_pathesToDraw.where((element) => element.cached));
+        _pathesToDraw.removeWhere((element) {
+          return element.cached;
+        });
+      });
+    }).catchError((error) {
+      print("Error $error");
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    ensureBuffersCreated(context);
-
     return new Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) {
-          _pathToDraw =
+          var pathPart =
               new PathPart(color: color, penWidth: penWidth, path: Path());
-          _pathToDraw.path.moveTo(event.position.dx, event.position.dy);
+          pathPart.path.moveTo(event.position.dx, event.position.dy);
+          _pathesToDraw.add(pathPart);
           _pathesToRedo.clear();
-          _drawToImageIncremental(context, 1.0).then((newImage) {
-            setState(() {
-              _frameBuffer = newImage;
-            });
-          });
         },
         onPointerMove: (event) {
-          print("move");
-          _pathToDraw.path.lineTo(event.position.dx, event.position.dy);
-          var start = DateTime.now();
-          _drawToImageIncremental(context, 1.0).then(
-            (newImage) {
-              print("elapse: ${DateTime.now().difference(start)}");
-            setState(() {
-              _frameBuffer = newImage;
-            });
+          setState(() {
+            _pathesToDraw.last.path
+                .lineTo(event.position.dx, event.position.dy);
           });
         },
         onPointerUp: (event) {
-          _pathToDraw.path.lineTo(event.position.dx, event.position.dy);
-          _drawToImageIncremental(context, 1.0).then((newImage) {
-            setState(() {
-              _frameBuffer = newImage;
-              _cachedBuffer = newImage;
-              _pathesDrawn.add(_pathToDraw);
-              _pathToDraw = null;
-              print("up");
-            });
+          print("up");
+          setState(() {
+            _pathesToDraw.last.path
+                .lineTo(event.position.dx, event.position.dy);
+            _pathesToDraw.last.completed = true;
           });
+          try {
+            _updateCacheBuffer(context);
+          } catch (error) {
+            print("err = $error");
+          }
         },
         child: CustomPaint(
-          painter: _CustomPainter(
-              _cachedBuffer, DateTime.now().millisecondsSinceEpoch),
+          painter: _CustomPainter(_pathesToDraw, _cachedBuffer),
           size: Size.infinite,
           isComplex: true,
         ));
@@ -170,19 +148,36 @@ class PaintWidgetState extends State<PaintWidget> {
 }
 
 class _CustomPainter extends CustomPainter {
-  _CustomPainter(dart_ui.Image frameBuffer, int msSinceEpoch)
-      : _frameBuffer = frameBuffer,
-        _msSinceEpoch = msSinceEpoch {
-    print("ctor $_frameBuffer");
-  }
+  _CustomPainter(Queue<PathPart> pathesToDraw, dart_ui.Image cacheBuffer)
+      : _pathesToDraw = pathesToDraw,
+        _cacheBuffer = cacheBuffer;
 
-  dart_ui.Image _frameBuffer;
-  int _msSinceEpoch;
+  Queue<PathPart> _pathesToDraw;
+  dart_ui.Image _cacheBuffer;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (_frameBuffer != null)
-      canvas.drawImage(_frameBuffer, Offset(0, 0), Paint());
+    if (_cacheBuffer == null) {
+      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
+          new Paint()..color = Colors.white);
+    } else {
+      canvas.drawImage(
+          _cacheBuffer, Offset(0, 0), Paint());
+    }
+
+    print("size = ${_pathesToDraw.length}");
+
+    for (var path in _pathesToDraw) {
+      canvas.drawPath(
+          path.path,
+          new Paint()
+            ..color = path.color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = path.penWidth
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..isAntiAlias = true);
+    }
   }
 
   @override
@@ -191,8 +186,7 @@ class _CustomPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_CustomPainter oldDelegate) =>
-      this._msSinceEpoch != oldDelegate._msSinceEpoch;
+  bool shouldRepaint(_CustomPainter oldDelegate) => true;
 
   @override
   bool shouldRebuildSemantics(_CustomPainter oldDelegate) => false;

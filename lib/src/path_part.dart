@@ -6,4 +6,6 @@ class PathPart {
   Color color;
   double penWidth;
   Path path = new Path();
+  bool completed = false;
+  bool cached = false;
 }
