@@ -6,6 +6,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:ext_storage/ext_storage.dart';
 import 'paint_widget.dart';
 import 'palette_button.dart';
 import 'tool_button.dart';
@@ -63,8 +64,8 @@ class MainViewState extends State<MainView> {
 
   Future<void> _saveImage(BuildContext context) async {
     try {
-      final picturesPath =
-          await _getExternalStoragePublicDirectory(_DIRECTORY_PICTURES);
+      final picturesPath = await ExtStorage.getExternalStoragePublicDirectory(ExtStorage.DIRECTORY_PICTURES);
+          //await _getExternalStoragePublicDirectory(_DIRECTORY_PICTURES);
       final myImagePath = '$picturesPath/DrawALot';
       final myImgDir = new Directory(myImagePath).create();
 
