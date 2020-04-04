@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:ext_storage/ext_storage.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'paint_widget.dart';
 import 'palette_button.dart';
@@ -17,10 +17,13 @@ class MainView extends StatefulWidget {
   final String title;
 
   @override
-  _MainViewState createState() => _MainViewState();
+  MainViewState createState() => MainViewState();
 }
 
-class _MainViewState extends State<MainView> {
+class MainViewState extends State<MainView> {
+  static const _platform = const MethodChannel('slebe.dev/draw-a-lot');
+  static const String _DIRECTORY_PICTURES = "Pictures";
+
   final _paintWidgetKey = GlobalKey<PaintWidgetState>();
   final _whiteColorButtonKey = GlobalKey<PaletteButtonState>();
   final _redColorButtonKey = GlobalKey<PaletteButtonState>();
@@ -35,10 +38,33 @@ class _MainViewState extends State<MainView> {
   Color _selectedColor = Colors.lightBlue;
   double _thickness = 20;
 
-  Future<void> saveImage() async {
+  void undo() {
+    _paintWidgetKey.currentState.undo();
+  }
+
+  Future<String> _getExternalStoragePublicDirectory(String type) async {
+    if (!Platform.isAndroid) {
+      throw UnsupportedError("Only android supported");
+    }
+    return await _platform
+        .invokeMethod('getExternalStoragePublicDirectory', {'type': type});
+  }
+
+  void _rescanGallery(String path) {
+    if (!Platform.isAndroid) {
+      throw UnsupportedError("Only android supported");
+    }
     try {
-      final picturesPath = await ExtStorage.getExternalStoragePublicDirectory(
-          ExtStorage.DIRECTORY_PICTURES);
+      _platform.invokeMethod('rescanGallery', <String, dynamic>{'path': path});
+    } catch (e) {
+      print("Failed to rescan gallery: $e");
+    }
+  }
+
+  Future<void> _saveImage(BuildContext context) async {
+    try {
+      final picturesPath =
+          await _getExternalStoragePublicDirectory(_DIRECTORY_PICTURES);
       final myImagePath = '$picturesPath/DrawALot';
       final myImgDir = new Directory(myImagePath).create();
 
@@ -53,14 +79,24 @@ class _MainViewState extends State<MainView> {
 
       var file = myImgDir.then((value) => new File(newFileName).create());
       return file.then((file) {
-        _paintWidgetKey.currentState.saveToFile(file);
+        _paintWidgetKey.currentState.saveToFile(file).then((file) {
+          _rescanGallery(file.path);
+          final snackBar = SnackBar(
+              content: Text(
+            "Saved successfully to ${file.path}",
+            textAlign: TextAlign.center,
+          ));
+
+          // Find the Scaffold in the widget tree and use it to show a SnackBar.
+          Scaffold.of(context).showSnackBar(snackBar);
+        });
       });
     } catch (err) {
       print("Error while saving: $err");
     }
   }
 
-  void updateSelectedColor(Color color) {
+  void _updateSelectedColor(Color color) {
     _selectedColor = color;
     _whiteColorButtonKey.currentState.updateSelectedColor(_selectedColor);
     _redColorButtonKey.currentState.updateSelectedColor(_selectedColor);
@@ -73,7 +109,7 @@ class _MainViewState extends State<MainView> {
     _blackColorButtonKey.currentState.updateSelectedColor(_selectedColor);
   }
 
-  Future<void> updateThickness(Future<double> val) async {
+  Future<void> _updateThickness(Future<double> val) async {
     var res = await val;
     if (res != null) {
       print("New thickness: $res");
@@ -87,181 +123,170 @@ class _MainViewState extends State<MainView> {
     print(
         "Screen size: ${query.size}, ratio: ${query.devicePixelRatio}, text scale factor: ${query.textScaleFactor}");
 
-    return new WillPopScope(
-        onWillPop: () {
-          print("Back button clicked");
-          _paintWidgetKey.currentState.undo();
-          return new Future(() => false);
-        },
-        child: Scaffold(
-            extendBodyBehindAppBar: false,
-            resizeToAvoidBottomPadding: false,
-            body: Stack(
-              children: <Widget>[
-                PaintWidget(_selectedColor, _thickness, key: _paintWidgetKey),
-                Align(
-                    alignment: Alignment.centerRight,
-                    child: Column(
-                        mainAxisSize: MainAxisSize.max,
-                        children: <Widget>[
-                          const SizedBox(height: 15),
-                          PaletteButton(
-                            Colors.white,
-                            _selectedColor,
-                            key: _whiteColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.red,
-                            _selectedColor,
-                            key: _redColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.orange,
-                            _selectedColor,
-                            key: _orangeColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.yellow,
-                            _selectedColor,
-                            key: _yellowColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.green,
-                            _selectedColor,
-                            key: _greenColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              setState(() {
-                                _selectedColor = color;
-                                updateSelectedColor(color);
-                              });
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.lightBlue,
-                            _selectedColor,
-                            key: _lightBlueColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.blue[900],
-                            _selectedColor,
-                            key: _blueColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.purple[800],
-                            _selectedColor,
-                            key: _purpleColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const Spacer(),
-                          PaletteButton(
-                            Colors.black,
-                            _selectedColor,
-                            key: _blackColorButtonKey,
-                            onPressed: (color) {
-                              _paintWidgetKey.currentState.color = color;
-                              updateSelectedColor(color);
-                            },
-                          ),
-                          const SizedBox(height: 15),
-                        ])),
-                Align(
-                    alignment: Alignment.centerLeft,
-                    child: Padding(
-                        padding: EdgeInsets.only(left: 5),
-                        child: Column(children: <Widget>[
-                          SizedBox(height: 15),
-                          ToolButton(
-                            imageIcon: AssetImage('icons/brush_thickness.png'),
-                            onPressed: () {
-                              print("Brush width clicked");
-                              final buttonHeight = min(80.0,
-                                  MediaQuery.of(context).size.height / 5 - 12);
-                              var thickness = showThicknessDialog(
-                                  context, buttonHeight, 10.0);
-                              updateThickness(thickness);
-                            },
-                          ),
-                          const Spacer(flex: 6),
-                          ToolButton(
-                            iconData: Icons.undo,
-                            color: Colors.blue[900],
-                            onPressed: () {
-                              print("Undo clicked");
-                              _paintWidgetKey.currentState.undo();
-                            },
-                          ),
-                          const Spacer(),
-                          ToolButton(
-                            iconData: Icons.redo,
-                            color: Colors.blue[900],
-                            onPressed: () {
-                              print("Redo clicked");
-                              _paintWidgetKey.currentState.redo();
-                            },
-                          ),
-                          const Spacer(flex: 6),
-                          ToolButton(
-                            iconData: Icons.save,
-                            color: Colors.indigo[900],
-                            disabled: kIsWeb,
-                            onPressed: () {
-                              print("Saving picture...");
-                              saveImage().catchError((error) {
-                                print("Error during save file: $error");
-                              }).whenComplete(() {
-                                print("Saving complete successfull");
-                              });
-                            },
-                          ),
-                          const Spacer(),
-                          ToolButton(
-                            iconData: Icons.delete_outline,
-                            color: Colors.red[900],
-                            onPressed: () {
-                              print("Clean clicked");
-                              _paintWidgetKey.currentState.clean();
-                            },
-                          ),
-                          const SizedBox(
-                            height: 15,
-                          ),
-                        ]))),
-              ],
-            )));
+    return new Stack(
+      children: <Widget>[
+        PaintWidget(_selectedColor, _thickness, key: _paintWidgetKey),
+        Align(
+            alignment: Alignment.centerRight,
+            child: Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
+              const SizedBox(height: 15),
+              PaletteButton(
+                Colors.white,
+                _selectedColor,
+                key: _whiteColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.red,
+                _selectedColor,
+                key: _redColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.orange,
+                _selectedColor,
+                key: _orangeColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.yellow,
+                _selectedColor,
+                key: _yellowColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.green,
+                _selectedColor,
+                key: _greenColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  setState(() {
+                    _selectedColor = color;
+                    _updateSelectedColor(color);
+                  });
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.lightBlue,
+                _selectedColor,
+                key: _lightBlueColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.blue[900],
+                _selectedColor,
+                key: _blueColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.purple[800],
+                _selectedColor,
+                key: _purpleColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const Spacer(),
+              PaletteButton(
+                Colors.black,
+                _selectedColor,
+                key: _blackColorButtonKey,
+                onPressed: (color) {
+                  _paintWidgetKey.currentState.color = color;
+                  _updateSelectedColor(color);
+                },
+              ),
+              const SizedBox(height: 15),
+            ])),
+        Align(
+            alignment: Alignment.centerLeft,
+            child: Padding(
+                padding: EdgeInsets.only(left: 5),
+                child: Column(children: <Widget>[
+                  SizedBox(height: 15),
+                  ToolButton(
+                    imageIcon: AssetImage('icons/brush_thickness.png'),
+                    onPressed: () {
+                      print("Brush width clicked");
+                      final buttonHeight = min(
+                          80.0, MediaQuery.of(context).size.height / 5 - 12);
+                      var thickness =
+                          showThicknessDialog(context, buttonHeight, 10.0);
+                      _updateThickness(thickness);
+                    },
+                  ),
+                  const Spacer(flex: 6),
+                  ToolButton(
+                    iconData: Icons.undo,
+                    color: Colors.blue[900],
+                    onPressed: () {
+                      print("Undo clicked");
+                      _paintWidgetKey.currentState.undo();
+                    },
+                  ),
+                  const Spacer(),
+                  ToolButton(
+                    iconData: Icons.redo,
+                    color: Colors.blue[900],
+                    onPressed: () {
+                      print("Redo clicked");
+                      _paintWidgetKey.currentState.redo();
+                    },
+                  ),
+                  const Spacer(flex: 6),
+                  ToolButton(
+                    iconData: Icons.save,
+                    color: Colors.indigo[900],
+                    disabled: kIsWeb,
+                    onPressed: () {
+                      print("Saving picture...");
+                      _saveImage(context).catchError((error) {
+                        print("Error during save file: $error");
+                      }).whenComplete(() {
+                        print("Saving complete");
+                      });
+                    },
+                  ),
+                  const Spacer(),
+                  ToolButton(
+                    iconData: Icons.delete_outline,
+                    color: Colors.red[900],
+                    onPressed: () {
+                      print("Clean clicked");
+                      _paintWidgetKey.currentState.clean();
+                    },
+                  ),
+                  const SizedBox(
+                    height: 15,
+                  ),
+                ]))),
+      ],
+    );
   }
 }

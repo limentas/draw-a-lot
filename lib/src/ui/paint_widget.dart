@@ -124,7 +124,8 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void _updateCacheBuffer(BuildContext context,
       {bool forceUpdateCache: false}) {
-    if (kIsWeb) return; //There is some bug in canvas.drawImage and cache does not work properly
+    if (kIsWeb)
+      return; //There is some bug in canvas.drawImage and cache does not work properly
 
     var imageFuture = _drawToImage(context, 1.0, redrawCache: forceUpdateCache);
 
@@ -158,7 +159,6 @@ class PaintWidgetState extends State<PaintWidget> {
           });
         },
         onPointerUp: (event) {
-          print("up");
           setState(() {
             _pathesToDraw.last.path
                 .lineTo(event.position.dx, event.position.dy);
@@ -188,7 +188,6 @@ class _CustomPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    print("cache = $_cacheBuffer");
     if (_cacheBuffer == null) {
       canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
           new Paint()..color = Colors.white);

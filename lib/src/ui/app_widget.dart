@@ -4,6 +4,8 @@ import 'package:flutter/services.dart';
 import 'main_view.dart';
 
 class AppWidget extends StatelessWidget {
+  final _mainWidgetKey = GlobalKey<MainViewState>();
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -25,7 +27,17 @@ class AppWidget extends StatelessWidget {
           primarySwatch: Colors.blue,
           buttonColor: Colors.grey[800],
           buttonTheme: ButtonThemeData(height: 60)),
-      home: MainView(title: 'DrawA̲lot'),
-    );
+      home: WillPopScope(
+        onWillPop: () {
+          print("Back button clicked");
+          _mainWidgetKey.currentState.undo();
+          return new Future(() => false);
+        },
+        child: Scaffold(
+            extendBodyBehindAppBar: false,
+            resizeToAvoidBottomPadding: false,
+            body: MainView(title: 'DrawA̲lot'),
+        )
+    ));
   }
 }
