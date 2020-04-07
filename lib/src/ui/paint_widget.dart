@@ -205,6 +205,7 @@ class PaintWidgetState extends State<PaintWidget> {
       checkNeighbor(x, y + 1);
     }
 
+
     bitmap.buildImage().then((value) {
       setState(() {
         _cacheBuffer = value;

@@ -256,6 +256,7 @@ class MainViewState extends State<MainView> {
                     iconData: Icons.format_color_fill,
                     color: Colors.green[900],
                     toggled: _tool == PaintTool.Fill,
+                    disabled: kIsWeb == true,
                     onPressed: () {
                       _updateTool(PaintTool.Fill);
                     },
