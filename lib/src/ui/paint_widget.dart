@@ -1,17 +1,22 @@
 import 'dart:collection';
 import 'dart:io';
 import 'dart:ui' as dart_ui;
+import 'dart:typed_data';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
+import 'package:bitmap/bitmap.dart';
+
 import 'package:draw_a_lot/src/path_part.dart';
+import 'package:draw_a_lot/src/color.dart';
 
 class PaintWidget extends StatefulWidget {
   PaintWidget(this.color, this.penWidth, {key}) : super(key: key) {
     print("create paint widget");
   }
 
-  final Color color;
+  final dart_ui.Color color;
   final double penWidth;
 
   @override
@@ -19,11 +24,14 @@ class PaintWidget extends StatefulWidget {
       PaintWidgetState(color: color, penWidth: penWidth);
 }
 
+enum PaintTool { Pen, Fill }
+
 class PaintWidgetState extends State<PaintWidget> {
   PaintWidgetState({this.color, this.penWidth});
 
-  Color color = Colors.black;
+  var color = Colors.black;
   double penWidth = 0.0;
+  PaintTool tool = PaintTool.Pen;
 
   Queue<PathPart> _pathesToDraw = new Queue<PathPart>();
   Queue<PathPart> _pathesDrawn = new Queue<PathPart>();
@@ -80,10 +88,12 @@ class PaintWidgetState extends State<PaintWidget> {
     var imageSize = MediaQuery.of(context).size * scaleFactor;
     var canvas = Canvas(recorder);
 
-    canvas.scale(scaleFactor);
+    if (scaleFactor != 1) canvas.scale(scaleFactor);
 
     if (_cacheBuffer == null || redrawCache) {
-      canvas.drawRect(Rect.fromLTWH(0, 0, imageSize.width, imageSize.height),
+      canvas.drawRect(
+          Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
+              imageSize.height.ceilToDouble()),
           new Paint()..color = Colors.white);
     } else {
       canvas.drawImage(_cacheBuffer, Offset(0, 0), Paint());
@@ -119,7 +129,7 @@ class PaintWidgetState extends State<PaintWidget> {
 
     return recorder
         .endRecording()
-        .toImage(imageSize.width.toInt(), imageSize.height.toInt());
+        .toImage(imageSize.width.ceil(), imageSize.height.ceil());
   }
 
   void _updateCacheBuffer(BuildContext context,
@@ -141,34 +151,127 @@ class PaintWidgetState extends State<PaintWidget> {
     });
   }
 
+  void _perfomFill(
+      BuildContext context, ByteData imageData, Offset mousePosition) {
+    final mouseX = mousePosition.dx.toInt();
+    final mouseY = mousePosition.dy.toInt();
+    final width = MediaQuery.of(context).size.width.ceil();
+    final height = MediaQuery.of(context).size.height.ceil();
+
+    final bitmap = imageData == null
+        ? Bitmap.blank(width, height)
+        : Bitmap.fromHeadless(width, height, imageData.buffer.asUint8List());
+
+    final getImageColorSafe = (x, y) {
+      if (x < 0 || x >= width || y < 0 || y >= height) return null;
+      final base = (x + y * width) * 4;
+
+      return Color.fromRgba(bitmap.content[base], bitmap.content[base + 1],
+          bitmap.content[base + 2], bitmap.content[base + 3]);
+    };
+    final colorToReplace = getImageColorSafe(mouseX, mouseY);
+    final colorReplaceTo = Color.fromColor(color);
+    if (colorToReplace == colorReplaceTo) return;
+
+    final queue = DoubleLinkedQueue.of([
+      [mouseX, mouseY]
+    ]);
+
+    while (queue.isNotEmpty) {
+      final item = queue.removeFirst();
+      final x = item.first;
+      final y = item.last;
+
+      //check neighbors (left, right, top, bottom)
+      final checkNeighbor = (x, y) {
+        final colorToCheck = getImageColorSafe(x, y);
+        if (colorToCheck == colorReplaceTo) return;
+
+        if (colorToCheck == colorToReplace ||
+            colorToCheck != null &&
+                colorToCheck.difference(colorToReplace) < 260) {
+          final base = (x + y * width) * 4;
+          bitmap.content[base] = color.red;
+          bitmap.content[base + 1] = color.green;
+          bitmap.content[base + 2] = color.blue;
+          bitmap.content[base + 3] = color.alpha;
+          queue.add([x, y]);
+        }
+      };
+
+      checkNeighbor(x - 1, y);
+      checkNeighbor(x + 1, y);
+      checkNeighbor(x, y - 1);
+      checkNeighbor(x, y + 1);
+    }
+
+    bitmap.buildImage().then((value) {
+      setState(() {
+        _cacheBuffer = value;
+      });
+    });
+  }
+
+  void _fillPoint(BuildContext contex, Offset mousePosition) {
+    if (_cacheBuffer == null) {
+      _perfomFill(contex, null, mousePosition);
+      return;
+    }
+    final byteDataFuture =
+        _cacheBuffer.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
+    byteDataFuture.then((imageData) {
+      _perfomFill(context, imageData, mousePosition);
+    });
+  }
+
+  void _onMouseDown(BuildContext contex, PointerDownEvent event) {
+    if (tool == PaintTool.Pen) {
+      var pathPart =
+          new PathPart(color: color, penWidth: penWidth, path: Path());
+      pathPart.path.moveTo(event.position.dx, event.position.dy);
+      _pathesToDraw.add(pathPart);
+      _pathesToRedo.clear();
+    } else if (tool == PaintTool.Fill) {
+      _fillPoint(contex, event.position);
+    }
+  }
+
+  void _onMouseMove(PointerMoveEvent event) {
+    if (tool == PaintTool.Pen) {
+      setState(() {
+        _pathesToDraw.last.path.lineTo(event.position.dx, event.position.dy);
+      });
+    } else if (tool == PaintTool.Fill) {
+      //_fillPoint(event.position);
+    }
+  }
+
+  void _onMouseUp(PointerUpEvent event) {
+    if (tool == PaintTool.Pen) {
+      setState(() {
+        _pathesToDraw.last.path.lineTo(event.position.dx, event.position.dy);
+        _pathesToDraw.last.completed = true;
+      });
+      try {
+        _updateCacheBuffer(context);
+      } catch (error) {
+        print("err = $error");
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return new Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) {
-          var pathPart =
-              new PathPart(color: color, penWidth: penWidth, path: Path());
-          pathPart.path.moveTo(event.position.dx, event.position.dy);
-          _pathesToDraw.add(pathPart);
-          _pathesToRedo.clear();
+          _onMouseDown(context, event);
         },
         onPointerMove: (event) {
-          setState(() {
-            _pathesToDraw.last.path
-                .lineTo(event.position.dx, event.position.dy);
-          });
+          _onMouseMove(event);
         },
         onPointerUp: (event) {
-          setState(() {
-            _pathesToDraw.last.path
-                .lineTo(event.position.dx, event.position.dy);
-            _pathesToDraw.last.completed = true;
-          });
-          try {
-            _updateCacheBuffer(context);
-          } catch (error) {
-            print("err = $error");
-          }
+          _onMouseUp(event);
         },
         child: CustomPaint(
           painter: _CustomPainter(_pathesToDraw, _cacheBuffer),

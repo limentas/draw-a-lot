@@ -9,7 +9,8 @@ class ToolButton extends StatelessWidget {
       this.iconData,
       this.color,
       this.onPressed,
-      this.disabled: false})
+      this.disabled: false,
+      this.toggled: false})
       : super(key: key);
 
   final double _defaultButtonElevation = 4.0;
@@ -20,15 +21,19 @@ class ToolButton extends StatelessWidget {
   final IconData iconData;
   final Color color;
   final bool disabled;
+  final bool toggled;
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = min(max(40.0, MediaQuery.of(context).size.height / 8 - 4), 80.0);
+    final buttonSize =
+        min(max(40.0, MediaQuery.of(context).size.height / 9 - 4), 80.0);
     return new ButtonTheme(
         height: buttonSize,
         minWidth: buttonSize,
         child: RaisedButton(
-          materialTapTargetSize: buttonSize < 48 ? MaterialTapTargetSize.shrinkWrap : MaterialTapTargetSize.padded,
+          materialTapTargetSize: buttonSize < 48
+              ? MaterialTapTargetSize.shrinkWrap
+              : MaterialTapTargetSize.padded,
           child: imageIcon != null
               ? ImageIcon(
                   imageIcon,
@@ -40,11 +45,15 @@ class ToolButton extends StatelessWidget {
                   size: buttonSize * 0.6,
                   color: color,
                 ),
-          color: Colors.white,
+          color: toggled ? Colors.yellowAccent[100] : Colors.white,
+          highlightColor: Colors.yellowAccent[100],
           shape: CircleBorder(),
-          elevation: _defaultButtonElevation,
-          focusElevation: _defaultButtonElevation,
-          hoverElevation: _defaultButtonElevation,
+          elevation:
+              toggled ? _toggledButtonElevation : _defaultButtonElevation,
+          focusElevation:
+              toggled ? _toggledButtonElevation : _defaultButtonElevation,
+          hoverElevation:
+              toggled ? _toggledButtonElevation : _defaultButtonElevation,
           highlightElevation: _toggledButtonElevation,
           onPressed: disabled ? null : onPressed,
         ));

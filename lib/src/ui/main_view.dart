@@ -37,6 +37,7 @@ class MainViewState extends State<MainView> {
 
   Color _selectedColor = Colors.lightBlue;
   double _thickness = 20;
+  PaintTool _tool = PaintTool.Pen;
 
   void undo() {
     _paintWidgetKey.currentState.undo();
@@ -115,6 +116,13 @@ class MainViewState extends State<MainView> {
       print("New thickness: $res");
       _paintWidgetKey.currentState.penWidth = _thickness = res;
     }
+  }
+
+  void _updateTool(PaintTool tool) {
+    _paintWidgetKey.currentState.tool = tool;
+    setState(() {
+      _tool = tool;
+    });
   }
 
   @override
@@ -232,13 +240,24 @@ class MainViewState extends State<MainView> {
                   SizedBox(height: 15),
                   ToolButton(
                     imageIcon: AssetImage('icons/brush_thickness.png'),
+                    toggled: _tool == PaintTool.Pen,
                     onPressed: () {
                       print("Brush width clicked");
+                      _updateTool(PaintTool.Pen);
                       final buttonHeight = min(
                           80.0, MediaQuery.of(context).size.height / 5 - 12);
                       var thickness =
-                          showThicknessDialog(context, buttonHeight, 10.0);
+                          showThicknessDialog(context, buttonHeight, 10.0, _thickness);
                       _updateThickness(thickness);
+                    },
+                  ),
+                  const Spacer(),
+                  ToolButton(
+                    iconData: Icons.format_color_fill,
+                    color: Colors.green[900],
+                    toggled: _tool == PaintTool.Fill,
+                    onPressed: () {
+                      _updateTool(PaintTool.Fill);
                     },
                   ),
                   const Spacer(flex: 6),
