@@ -1,15 +1,13 @@
 import 'dart:collection';
 import 'dart:io';
 import 'dart:ui' as dart_ui;
-import 'dart:typed_data';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:bitmap/bitmap.dart';
-
 import 'package:draw_a_lot/src/path_part.dart';
-import 'package:draw_a_lot/src/color.dart';
+import 'package:draw_a_lot/src/history_step.dart';
+import 'package:draw_a_lot/src/paint_tools.dart';
 
 class PaintWidget extends StatefulWidget {
   PaintWidget(this.color, this.penWidth, {key}) : super(key: key) {
@@ -34,39 +32,61 @@ class PaintWidgetState extends State<PaintWidget> {
   PaintTool tool = PaintTool.Pen;
 
   Queue<PathPart> _pathesToDraw = new Queue<PathPart>();
-  Queue<PathPart> _pathesDrawn = new Queue<PathPart>();
-  Queue<PathPart> _pathesToRedo = new Queue<PathPart>();
+
+  //FIFO - last element was added last
+  var _historyToUndo = new DoubleLinkedQueue<HistoryStep>();
+  //LIFO - first element in history was las inserted
+  var _historyToRedo = new DoubleLinkedQueue<HistoryStep>();
+
   dart_ui.Image _cacheBuffer;
+
+  final _cacheHistoryLimit = 7;
+  var _currentCachesInUndoHistory = 0;
+  var _currentCachesInRedoHistory = 0;
 
   void undo() {
     if (_pathesToDraw.isNotEmpty) {
       setState(() {
         final lastChange = _pathesToDraw.removeLast();
         lastChange.completed = true;
-        _pathesToRedo.add(lastChange);
+        _historyToRedo.addLast(HistoryStep.fromPath(lastChange));
         if (lastChange.cached) {
           //needs to redraw cache
           _updateCacheBuffer(context, forceUpdateCache: true);
         }
       });
-    } else if (_pathesDrawn.isNotEmpty) {
-      _pathesToRedo.add(_pathesDrawn.removeLast());
+    } else if (_historyToUndo.isNotEmpty &&
+        (_historyToUndo.length != 1 ||
+            _historyToUndo.first.stepType != StepType.Cache)) {
+      var last = _historyToUndo.removeLast();
+      //for redo this step in case of cache we should add current cache to redo list
+      if (last.stepType == StepType.Cache) {
+        --_currentCachesInUndoHistory;
+        ++_currentCachesInRedoHistory;
+        _historyToRedo.addFirst(HistoryStep.fromCache(_cacheBuffer));
+      } else {
+        _historyToRedo.addFirst(last);
+      }
       _updateCacheBuffer(context, forceUpdateCache: true);
     }
   }
 
   void redo() {
-    if (_pathesToRedo.isEmpty) return;
-    setState(() {
-      _pathesToDraw.add(_pathesToRedo.removeLast());
-    });
-    _updateCacheBuffer(context);
+    if (_historyToRedo.isEmpty) return;
+    var first = _historyToRedo.removeFirst();
+    if (first.stepType == StepType.Cache) {
+      ++_currentCachesInUndoHistory;
+      --_currentCachesInRedoHistory;
+    }
+    _historyToUndo.addLast(first);
+    _updateCacheBuffer(context, forceUpdateCache: true);
   }
 
   void clean() {
-    _pathesToRedo = _pathesDrawn;
-    _pathesToRedo.addAll(_pathesToDraw);
-    _pathesDrawn = new Queue<PathPart>();
+    _historyToRedo = _historyToUndo;
+    _historyToUndo = new DoubleLinkedQueue<HistoryStep>();
+    _currentCachesInRedoHistory = _currentCachesInUndoHistory;
+    _currentCachesInUndoHistory = 0;
     _pathesToDraw.clear();
     _updateCacheBuffer(context, forceUpdateCache: true);
   }
@@ -90,17 +110,26 @@ class PaintWidgetState extends State<PaintWidget> {
 
     if (scaleFactor != 1) canvas.scale(scaleFactor);
 
-    if (_cacheBuffer == null || redrawCache) {
-      canvas.drawRect(
-          Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
-              imageSize.height.ceilToDouble()),
-          new Paint()..color = Colors.white);
-    } else {
-      canvas.drawImage(_cacheBuffer, Offset(0, 0), Paint());
-    }
-
     if (redrawCache) {
-      for (var part in _pathesDrawn) {
+      var entry = _historyToUndo.lastEntry();
+      while (entry != null && entry.element.stepType != StepType.Cache) {
+        entry = entry.previousEntry();
+      }
+
+      if (entry != null) {
+        canvas.drawImage(entry.element.cache, Offset(0, 0), Paint());
+        entry = entry.nextEntry(); //begining from next to cache path
+      } else {
+        //no cache image in history
+        canvas.drawRect(
+            Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
+                imageSize.height.ceilToDouble()),
+            new Paint()..color = Colors.white);
+        entry = _historyToUndo.firstEntry(); //begining from first entry
+      }
+
+      while (entry != null) {
+        final part = entry.element.path;
         canvas.drawPath(
             part.path,
             new Paint()
@@ -110,7 +139,15 @@ class PaintWidgetState extends State<PaintWidget> {
               ..strokeCap = StrokeCap.round
               ..strokeJoin = StrokeJoin.round
               ..isAntiAlias = true);
+        entry = entry.nextEntry();
       }
+    } else if (_cacheBuffer == null) {
+      canvas.drawRect(
+          Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
+              imageSize.height.ceilToDouble()),
+          new Paint()..color = Colors.white);
+    } else {
+      canvas.drawImage(_cacheBuffer, Offset(0, 0), Paint());
     }
 
     for (var part in _pathesToDraw) {
@@ -143,7 +180,10 @@ class PaintWidgetState extends State<PaintWidget> {
       setState(() {
         _cacheBuffer = value;
 
-        _pathesDrawn.addAll(_pathesToDraw.where((element) => element.cached));
+        var cachedPathes = _pathesToDraw.where((element) => element.cached);
+        for (var path in cachedPathes)
+          _historyToUndo.add(HistoryStep.fromPath(path));
+
         _pathesToDraw.removeWhere((element) => element.cached);
       });
     }).catchError((error) {
@@ -151,77 +191,23 @@ class PaintWidgetState extends State<PaintWidget> {
     });
   }
 
-  void _perfomFill(
-      BuildContext context, ByteData imageData, Offset mousePosition) {
-    final mouseX = mousePosition.dx.toInt();
-    final mouseY = mousePosition.dy.toInt();
-    final width = MediaQuery.of(context).size.width.ceil();
-    final height = MediaQuery.of(context).size.height.ceil();
-
-    final bitmap = imageData == null
-        ? Bitmap.blank(width, height)
-        : Bitmap.fromHeadless(width, height, imageData.buffer.asUint8List());
-
-    final getImageColorSafe = (x, y) {
-      if (x < 0 || x >= width || y < 0 || y >= height) return null;
-      final base = (x + y * width) * 4;
-
-      return Color.fromRgba(bitmap.content[base], bitmap.content[base + 1],
-          bitmap.content[base + 2], bitmap.content[base + 3]);
-    };
-    final colorToReplace = getImageColorSafe(mouseX, mouseY);
-    final colorReplaceTo = Color.fromColor(color);
-    if (colorToReplace == colorReplaceTo) return;
-
-    final queue = DoubleLinkedQueue.of([
-      [mouseX, mouseY]
-    ]);
-
-    while (queue.isNotEmpty) {
-      final item = queue.removeFirst();
-      final x = item.first;
-      final y = item.last;
-
-      //check neighbors (left, right, top, bottom)
-      final checkNeighbor = (x, y) {
-        final colorToCheck = getImageColorSafe(x, y);
-        if (colorToCheck == colorReplaceTo) return;
-
-        if (colorToCheck == colorToReplace ||
-            colorToCheck != null &&
-                colorToCheck.difference(colorToReplace) < 260) {
-          final base = (x + y * width) * 4;
-          bitmap.content[base] = color.red;
-          bitmap.content[base + 1] = color.green;
-          bitmap.content[base + 2] = color.blue;
-          bitmap.content[base + 3] = color.alpha;
-          queue.add([x, y]);
-        }
-      };
-
-      checkNeighbor(x - 1, y);
-      checkNeighbor(x + 1, y);
-      checkNeighbor(x, y - 1);
-      checkNeighbor(x, y + 1);
-    }
-
-
-    bitmap.buildImage().then((value) {
+  void _fillImage(BuildContext contex, Offset mousePosition) {
+    fillImage(_cacheBuffer, MediaQuery.of(context).size, mousePosition, color)
+        .then((value) {
       setState(() {
+        if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
+            _cacheHistoryLimit) {
+          HistoryStep
+              item; //removing all items from begin untill and including first cache
+          do {
+            item = _historyToUndo.removeFirst();
+          } while (item.stepType != StepType.Cache);
+        } else {
+          ++_currentCachesInUndoHistory;
+        }
+        _historyToUndo.add(HistoryStep.fromCache(value));
         _cacheBuffer = value;
       });
-    });
-  }
-
-  void _fillPoint(BuildContext contex, Offset mousePosition) {
-    if (_cacheBuffer == null) {
-      _perfomFill(contex, null, mousePosition);
-      return;
-    }
-    final byteDataFuture =
-        _cacheBuffer.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
-    byteDataFuture.then((imageData) {
-      _perfomFill(context, imageData, mousePosition);
     });
   }
 
@@ -231,9 +217,13 @@ class PaintWidgetState extends State<PaintWidget> {
           new PathPart(color: color, penWidth: penWidth, path: Path());
       pathPart.path.moveTo(event.position.dx, event.position.dy);
       _pathesToDraw.add(pathPart);
-      _pathesToRedo.clear();
     } else if (tool == PaintTool.Fill) {
-      _fillPoint(contex, event.position);
+      _fillImage(contex, event.position);
+    }
+
+    if (_historyToRedo.isNotEmpty) {
+      _historyToRedo.clear();
+      _currentCachesInRedoHistory = 0;
     }
   }
 
