@@ -1,0 +1,1 @@
+enum PaintTool { Pen, Fill }

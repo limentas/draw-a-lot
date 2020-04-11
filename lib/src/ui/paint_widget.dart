@@ -1,35 +1,37 @@
 import 'dart:collection';
-import 'dart:io';
 import 'dart:ui' as dart_ui;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/svg.dart';
 
 import 'package:draw_a_lot/src/path_part.dart';
 import 'package:draw_a_lot/src/history_step.dart';
-import 'package:draw_a_lot/src/paint_tools.dart';
+import 'package:draw_a_lot/src/paint_functions.dart';
+import 'package:draw_a_lot/src/paint_tool.dart';
+import 'package:flutter/services.dart';
 
 class PaintWidget extends StatefulWidget {
-  PaintWidget(this.color, this.penWidth, {key}) : super(key: key) {
+  PaintWidget(this.color, this._paintTool, this._penThickness, {key})
+      : super(key: key) {
     print("create paint widget");
   }
 
   final dart_ui.Color color;
-  final double penWidth;
+  final PaintTool _paintTool;
+  final double _penThickness;
 
   @override
-  PaintWidgetState createState() =>
-      PaintWidgetState(color: color, penWidth: penWidth);
+  PaintWidgetState createState() => PaintWidgetState(
+      color: color, paintTool: _paintTool, penThickness: _penThickness);
 }
 
-enum PaintTool { Pen, Fill }
-
 class PaintWidgetState extends State<PaintWidget> {
-  PaintWidgetState({this.color, this.penWidth});
+  PaintWidgetState({this.color, this.paintTool, this.penThickness});
 
   var color = Colors.black;
-  double penWidth = 0.0;
-  PaintTool tool = PaintTool.Pen;
+  double penThickness = 0.0;
+  PaintTool paintTool = PaintTool.Pen;
 
   Queue<PathPart> _pathesToDraw = new Queue<PathPart>();
 
@@ -43,6 +45,10 @@ class PaintWidgetState extends State<PaintWidget> {
   final _cacheHistoryLimit = 7;
   var _currentCachesInUndoHistory = 0;
   var _currentCachesInRedoHistory = 0;
+
+  var imageForColoringName = 'pictures/cowboy.svg';
+  dart_ui.Image _imageForColoring;
+  var _loadedImageForColoringName;
 
   void undo() {
     if (_pathesToDraw.isNotEmpty) {
@@ -91,15 +97,8 @@ class PaintWidgetState extends State<PaintWidget> {
     _updateCacheBuffer(context, forceUpdateCache: true);
   }
 
-  Future<File> saveToFile(File file) {
-    var imageBytes =
-        _drawToImage(context, MediaQuery.of(context).devicePixelRatio)
-            .then((value) {
-      return value.toByteData(format: dart_ui.ImageByteFormat.png);
-    });
-    return imageBytes.then((bytes) {
-      return file.writeAsBytes(bytes.buffer.asUint8List());
-    });
+  Future<dart_ui.Image> saveToImage() {
+    return _drawToImage(context, MediaQuery.of(context).devicePixelRatio);
   }
 
   Future<dart_ui.Image> _drawToImage(BuildContext context, double scaleFactor,
@@ -164,6 +163,10 @@ class PaintWidgetState extends State<PaintWidget> {
       part.cached = true;
     }
 
+    if (_imageForColoring != null)
+      canvas.drawImage(_imageForColoring, Offset(0, 0),
+          Paint()..blendMode = BlendMode.darken);
+
     return recorder
         .endRecording()
         .toImage(imageSize.width.ceil(), imageSize.height.ceil());
@@ -193,7 +196,8 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void _fillImage(BuildContext contex, Offset mousePosition) {
     fillImage(_cacheBuffer, MediaQuery.of(context).size, mousePosition, color)
-        .then((value) {
+        .then((image) {
+      if (image == null) return;
       setState(() {
         if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
             _cacheHistoryLimit) {
@@ -205,19 +209,19 @@ class PaintWidgetState extends State<PaintWidget> {
         } else {
           ++_currentCachesInUndoHistory;
         }
-        _historyToUndo.add(HistoryStep.fromCache(value));
-        _cacheBuffer = value;
+        _historyToUndo.add(HistoryStep.fromCache(image));
+        _cacheBuffer = image;
       });
     });
   }
 
   void _onMouseDown(BuildContext contex, PointerDownEvent event) {
-    if (tool == PaintTool.Pen) {
+    if (paintTool == PaintTool.Pen) {
       var pathPart =
-          new PathPart(color: color, penWidth: penWidth, path: Path());
+          new PathPart(color: color, penWidth: penThickness, path: Path());
       pathPart.path.moveTo(event.position.dx, event.position.dy);
       _pathesToDraw.add(pathPart);
-    } else if (tool == PaintTool.Fill) {
+    } else if (paintTool == PaintTool.Fill) {
       _fillImage(contex, event.position);
     }
 
@@ -228,17 +232,15 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   void _onMouseMove(PointerMoveEvent event) {
-    if (tool == PaintTool.Pen) {
+    if (paintTool == PaintTool.Pen) {
       setState(() {
         _pathesToDraw.last.path.lineTo(event.position.dx, event.position.dy);
       });
-    } else if (tool == PaintTool.Fill) {
-      //_fillPoint(event.position);
-    }
+    } else if (paintTool == PaintTool.Fill) {}
   }
 
   void _onMouseUp(PointerUpEvent event) {
-    if (tool == PaintTool.Pen) {
+    if (paintTool == PaintTool.Pen) {
       setState(() {
         _pathesToDraw.last.path.lineTo(event.position.dx, event.position.dy);
         _pathesToDraw.last.completed = true;
@@ -253,6 +255,23 @@ class PaintWidgetState extends State<PaintWidget> {
 
   @override
   Widget build(BuildContext context) {
+    if (imageForColoringName != _loadedImageForColoringName) {
+      _loadedImageForColoringName = imageForColoringName;
+      rootBundle.loadString(imageForColoringName).then((svgStr) {
+        return svg.fromSvgString(svgStr, null);
+      }).then((drawable) {
+        return drawable.toPicture(size: MediaQuery.of(context).size);
+      }).then((picture) {
+        return picture.toImage(MediaQuery.of(context).size.width.ceil(),
+            MediaQuery.of(context).size.height.ceil());
+      }).then((image) {
+        setState(() {
+          _imageForColoring = image;
+        });
+        _updateCacheBuffer(context);
+      });
+    }
+
     return new Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) {
@@ -265,7 +284,8 @@ class PaintWidgetState extends State<PaintWidget> {
           _onMouseUp(event);
         },
         child: CustomPaint(
-          painter: _CustomPainter(_pathesToDraw, _cacheBuffer),
+          painter:
+              _CustomPainter(_pathesToDraw, _cacheBuffer, _imageForColoring),
           size: Size.infinite,
           isComplex: true,
         ));
@@ -273,12 +293,15 @@ class PaintWidgetState extends State<PaintWidget> {
 }
 
 class _CustomPainter extends CustomPainter {
-  _CustomPainter(Queue<PathPart> pathesToDraw, dart_ui.Image cacheBuffer)
+  _CustomPainter(Queue<PathPart> pathesToDraw, dart_ui.Image cacheBuffer,
+      dart_ui.Image imageForColoring)
       : _pathesToDraw = pathesToDraw,
-        _cacheBuffer = cacheBuffer;
+        _cacheBuffer = cacheBuffer,
+        _imageForColoring = imageForColoring;
 
   Queue<PathPart> _pathesToDraw;
   dart_ui.Image _cacheBuffer;
+  dart_ui.Image _imageForColoring;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -300,6 +323,10 @@ class _CustomPainter extends CustomPainter {
             ..strokeJoin = StrokeJoin.round
             ..isAntiAlias = true);
     }
+
+    if (_imageForColoring != null)
+      canvas.drawImage(_imageForColoring, Offset(0, 0),
+          Paint()..blendMode = BlendMode.darken);
   }
 
   @override
