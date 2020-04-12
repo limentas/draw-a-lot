@@ -91,29 +91,25 @@ class MainViewState extends State<MainView> {
                   },
                   onSaveCalled: () {
                     print("Saving picture...");
-                    var hasPermissionFuture =
-                        OsFunctions.checkAndRequestWritePermissions();
-                    hasPermissionFuture.then((hasPermission) {
-                      if (!hasPermission) {
-                        print("Permission denied");
-                        return;
+                    final imageFuture =
+                        _paintWidgetKey.currentState.saveToImage();
+                    OsFunctions.saveToGallery(imageFuture).catchError((error) {
+                      print("An error occurred while saving the image: $error");
+                      _showSnackBar(context,
+                          "An error occurred while saving the image: $error");
+                    }).then((result) {
+                      if (result == null) {
+                        print("Unknow result");
                       }
-
-                      print("Permissin check ok");
-                      final imageFuture =
-                          _paintWidgetKey.currentState.saveToImage();
-                      OsFunctions.saveToGallery(imageFuture).catchError((error) {
-                        print(
-                            "An error occurred while saving the image: $error");
+                      else if (result) {
+                        print("Saved successfully");
+                        _showSnackBar(
+                            context, "Image saved successfully to the gallery");
+                      } else {
+                        print("An error occurred while saving the image");
                         _showSnackBar(context,
-                            "An error occurred while saving the image: $error");
-                      }).then((filePath) {
-                        if (filePath != null) {
-                          print("Saved successfully to $filePath");
-                          _showSnackBar(
-                              context, "Saved successfully to $filePath");
-                        }
-                      });
+                            "An error occurred while saving the image");
+                      }
                     });
                   },
                   onCleanCalled: () {

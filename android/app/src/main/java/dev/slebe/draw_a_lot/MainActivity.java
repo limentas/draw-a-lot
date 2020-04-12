@@ -3,6 +3,10 @@ package dev.slebe.draw_a_lot;
 import java.io.File;
 import java.io.OutputStream;
 import java.io.IOException;
+import java.lang.String;
+import java.util.Date;
+import java.text.SimpleDateFormat;
+import java.io.FileOutputStream;
 import androidx.annotation.NonNull;
 import android.media.MediaScannerConnection;
 import android.os.Build.VERSION;
@@ -24,6 +28,7 @@ import io.flutter.plugin.common.MethodChannel;
 
 public class MainActivity extends FlutterActivity {
 
+  private static final String LOG_TAG = "DrawALot";
   private static final String CHANNEL = "slebe.dev/draw-a-lot";
 
   private static final int GET_PERMISSION_RESULT_ALLOW = 0;
@@ -34,31 +39,109 @@ public class MainActivity extends FlutterActivity {
 
   private MethodChannel _channel;
 
+  private byte[] imageToSaveData = null;
+
   @Override
   public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
     _channel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL);
     _channel.setMethodCallHandler((call, result) -> {
-      if (call.method.equals("rescanGallery")) {
-        final String path = call.argument("path");
-        rescanGallery(path);
-        result.success(null);
-      } else if (call.method.equals("getExternalStoragePublicDirectory")) {
-        final String type = call.argument("type");
-        result.success(Environment.getExternalStoragePublicDirectory(type).toString());
-      } else if (call.method.equals("checkAndRequestWritePermissions")) {
-        result.success(checkAndRequestWritePermissions() == GET_PERMISSION_RESULT_ALLOW);
-      } else if (call.method.equals("saveImageToGallery")) {
+      if (call.method.equals("saveImageToGallery")) {
         final byte[] imagePngData = call.argument("imagePngData");
-        result.success(saveIamgeToGallery(imagePngData));
+        result.success(saveImageToGallery(imagePngData));
       } else {
         result.notImplemented();
       }
     });
   }
 
-  private boolean saveIamgeToGallery(byte[] imagePngData) {
+  @Override
+  public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    Log.d(LOG_TAG, "onRequestPermissionsResult code = " + requestCode);
+    switch (requestCode) {
+      case WRITE_PERMISSION_REQUEST_CODE: {
+        // If request is cancelled, the result arrays are empty.
+        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+          if (imageToSaveData != null) {
+            saveImageToGalleryApi1(imageToSaveData);
+            imageToSaveData = null;
+          }
+        } else {
+          imageToSaveData = null;
+        }
+        return;
+      }
+    }
+
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+  }
+
+  private boolean saveImageToGallery(byte[] imagePngData) {
+    if (VERSION.SDK_INT < 23)
+      return saveImageToGalleryApi1(imagePngData);
+    if (VERSION.SDK_INT < 29)
+      return saveImageToGalleryApi23(imagePngData);
+    return saveImageToGalleryApi29(imagePngData);
+  }
+
+  private boolean saveImageToGalleryApi1(byte[] imagePngData) {
+    Log.d(LOG_TAG, "saveImageToGalleryApi1");
+    File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES);
+    path = new File(path, "DrawALot");
+
+    try {
+      // Make sure the Pictures directory exists.
+      path.mkdirs();
+    } catch (SecurityException e) {
+      Log.w(LOG_TAG, "Error creating dir " + path, e);
+      return false;
+    }
+    int num = 0;
+    File file = null;
+    do {
+      file = new File(path, createBaseFileName(num++));
+    }
+    while(file.exists());
+
+    OutputStream stream = null;
+    try {
+      stream = new FileOutputStream(file);
+      stream.write(imagePngData);
+      stream.flush();
+
+      rescanGallery(file.getPath());
+      return true;
+    } catch (IOException e) {
+      // Unable to create file, likely because external storage is
+      // not currently mounted.
+      Log.w(LOG_TAG, "Error writing " + file, e);
+    } finally {
+      try {
+        if (stream != null) {
+          stream.close();
+        }
+      } catch (IOException e) {
+        Log.w(LOG_TAG, "Failure during closing stream e = " + e);
+      }
+    }
+    return false;
+  }
+
+  private boolean saveImageToGalleryApi23(byte[] imagePngData) {
+    Log.d(LOG_TAG, "saveImageToGalleryApi23");
+    int checkResult = checkAndRequestWritePermissions();
+    if (checkResult == GET_PERMISSION_RESULT_DENY)
+      return false;
+    else if (checkResult == GET_PERMISSION_RESULT_ALLOW)
+      return saveImageToGalleryApi1(imagePngData);
+    else
+      imageToSaveData = imagePngData;
+    return true;
+  }
+
+  private boolean saveImageToGalleryApi29(byte[] imagePngData) {
+    Log.d(LOG_TAG, "saveImageToGalleryApi29");
     final String relativePath = Environment.DIRECTORY_PICTURES + File.separator + "DrawALot"; // save directory
-    String fileName = "file.png"; // file name to save file with
+    String fileName = createBaseFileName(0); // file name to save file with
     String mimeType = "image/png"; // Mime Types define here
 
     final ContentValues contentValues = new ContentValues();
@@ -67,66 +150,65 @@ public class MainActivity extends FlutterActivity {
     contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, relativePath);
 
     final ContentResolver resolver = this.getContentResolver();
-
     OutputStream stream = null;
     Uri uri = null;
 
     try {
       final Uri contentUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
       uri = resolver.insert(contentUri, contentValues);
-
-      Log.d("MainActivity", "uri = " + uri);
+      Log.d(LOG_TAG, "uri = " + uri);
 
       if (uri == null) {
-        Log.d("error", "Failed to create new MediaStore record.");
+        Log.w(LOG_TAG, "Failed to create new MediaStore record.");
         return false;
       }
 
       stream = resolver.openOutputStream(uri);
-
       if (stream == null) {
-        Log.d("error", "Failed to get output stream.");
+        Log.w(LOG_TAG, "Failed to get output stream.");
       }
 
       stream.write(imagePngData);
-
       return true;
     } catch (IOException e) {
-      Log.d("MainActivity", "e = " + e);
+      Log.w(LOG_TAG, "Failure during saving image e = " + e);
       if (uri != null) {
         resolver.delete(uri, null, null);
       }
-      return false;
     } finally {
       try {
         if (stream != null) {
           stream.close();
         }
       } catch (IOException e) {
-        Log.d("MainActivity", "close e = " + e);
+        Log.w(LOG_TAG, "Failure during closing stream e = " + e);
       }
     }
+    return false;
   }
 
-  private void rescanGallery(String path) {
-    if (VERSION.SDK_INT >= VERSION_CODES.DONUT) {
+  private String createBaseFileName(int numSuffix) {
+    SimpleDateFormat format = new SimpleDateFormat("yyyyMMdd-HHmm");
+    if (numSuffix <= 0)
+      return String.format("%s.png", format.format(new Date()));
+    return String.format("%s(%d).png", format.format(new Date()), numSuffix);
+  }
+
+  private void rescanGallery(String pathToScan) {
+    if (VERSION.SDK_INT >= 8 && VERSION.SDK_INT < 29) {
       // Tell the media scanner about the new file so that it is
       // immediately available to the user.
-      MediaScannerConnection.scanFile(this, new String[] { path }, null,
+      MediaScannerConnection.scanFile(this, new String[] { pathToScan }, new String[] { "image/png" },
           new MediaScannerConnection.OnScanCompletedListener() {
             public void onScanCompleted(String path, Uri uri) {
-              Log.i("ExternalStorage", "Scanned " + path + ":");
-              Log.i("ExternalStorage", "-> uri=" + uri);
+              Log.i(LOG_TAG, "Scanned " + path + ":");
+              Log.i(LOG_TAG, "-> uri=" + uri);
             }
           });
     }
   }
 
   private int checkAndRequestWritePermissions() {
-    {
-
-    }
-
     if (VERSION.SDK_INT >= VERSION_CODES.Q) // on Android Q we will use mediastore
       return GET_PERMISSION_RESULT_ALLOW;
     if (ContextCompat.checkSelfPermission(this,
@@ -140,23 +222,4 @@ public class MainActivity extends FlutterActivity {
 
     return GET_PERMISSION_RESULT_PENDING;
   }
-
-  @Override
-  public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
-    Log.d("MainActivity", "onRequestPermissionsResult");
-    switch (requestCode) {
-      case WRITE_PERMISSION_REQUEST_CODE: {
-        // If request is cancelled, the result arrays are empty.
-        if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-          _channel.invokeMethod("setPermissionRequestResult", true);
-        } else {
-          _channel.invokeMethod("setPermissionRequestResult", false);
-        }
-        return;
-      }
-    }
-
-    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-  }
-
 }
