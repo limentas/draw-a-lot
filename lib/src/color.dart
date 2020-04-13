@@ -29,6 +29,11 @@ class Color {
   }
 
   @override
+  String toString() {
+    return "($red, $green, $blue, $alpha)";
+  }
+
+  @override
   bool operator ==(dynamic other) {
     if (identical(this, other)) return true;
     if (other.runtimeType != runtimeType) return false;

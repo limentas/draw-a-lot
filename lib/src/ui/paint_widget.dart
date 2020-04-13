@@ -48,6 +48,7 @@ class PaintWidgetState extends State<PaintWidget> {
 
   var imageForColoringName = 'pictures/cowboy.svg';
   dart_ui.Image _imageForColoring;
+  ByteData _imageForColoringByteData;
   var _loadedImageForColoringName;
 
   void undo() {
@@ -195,7 +196,8 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   void _fillImage(BuildContext contex, Offset mousePosition) {
-    fillImage(_cacheBuffer, MediaQuery.of(context).size, mousePosition, color)
+    fillImage(_cacheBuffer, _imageForColoringByteData,
+            MediaQuery.of(context).size, mousePosition, color)
         .then((image) {
       if (image == null) return;
       setState(() {
@@ -265,10 +267,15 @@ class PaintWidgetState extends State<PaintWidget> {
         return picture.toImage(MediaQuery.of(context).size.width.ceil(),
             MediaQuery.of(context).size.height.ceil());
       }).then((image) {
-        setState(() {
-          _imageForColoring = image;
+        image
+            .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
+            .then((byteData) {
+          _imageForColoringByteData = byteData;
+          setState(() {
+            _imageForColoring = image;
+          });
+          _updateCacheBuffer(context);
         });
-        _updateCacheBuffer(context);
       });
     }
 

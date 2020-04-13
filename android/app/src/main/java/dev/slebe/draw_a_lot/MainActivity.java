@@ -7,24 +7,27 @@ import java.lang.String;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.io.FileOutputStream;
-import androidx.annotation.NonNull;
+
 import android.media.MediaScannerConnection;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
+import android.os.Environment;
+import android.os.Bundle;
 import android.util.Log;
 import android.net.Uri;
-import android.os.Environment;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.annotation.NonNull;
 import android.Manifest;
 import android.content.pm.PackageManager;
-import android.provider.MediaStore;
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.provider.MediaStore;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
 import io.flutter.plugin.common.MethodChannel;
+import io.flutter.plugins.GeneratedPluginRegistrant;
 
 public class MainActivity extends FlutterActivity {
 
@@ -43,6 +46,7 @@ public class MainActivity extends FlutterActivity {
 
   @Override
   public void configureFlutterEngine(@NonNull FlutterEngine flutterEngine) {
+    GeneratedPluginRegistrant.registerWith(flutterEngine);
     _channel = new MethodChannel(flutterEngine.getDartExecutor().getBinaryMessenger(), CHANNEL);
     _channel.setMethodCallHandler((call, result) -> {
       if (call.method.equals("saveImageToGallery")) {
