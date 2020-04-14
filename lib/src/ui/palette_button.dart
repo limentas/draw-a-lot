@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'palette_pick_color_dialog.dart';
+import 'package:draw_a_lot/src/app_config.dart';
 
 class PaletteButton extends StatefulWidget {
   PaletteButton(
@@ -69,6 +70,7 @@ class PaletteButtonState extends State<PaletteButton> {
             widget._onPressed(currentColor);
           },
           onLongPress: () {
+            if (!AppConfig.fullAccess) return;
             if (widget._colorsToChoiseFrom == null ||
                 widget._colorsToChoiseFrom.isEmpty) return;
 

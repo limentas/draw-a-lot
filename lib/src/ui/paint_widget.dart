@@ -46,7 +46,6 @@ class PaintWidgetState extends State<PaintWidget> {
   var _currentCachesInUndoHistory = 0;
   var _currentCachesInRedoHistory = 0;
 
-  var imageForColoringName = 'pictures/cowboy.svg';
   dart_ui.Image _imageForColoring;
   ByteData _imageForColoringByteData;
   var _loadedImageForColoringName;
@@ -100,6 +99,40 @@ class PaintWidgetState extends State<PaintWidget> {
 
   Future<dart_ui.Image> saveToImage() {
     return _drawToImage(context, MediaQuery.of(context).devicePixelRatio);
+  }
+
+  void setImageForColoring(String newImageForColoringName) {
+    setState(() {
+      if (newImageForColoringName == _loadedImageForColoringName) return;
+      _loadedImageForColoringName = newImageForColoringName;
+      if (newImageForColoringName == null || newImageForColoringName.isEmpty) { //switching to blank canvas mode
+        _imageForColoringByteData = null;
+        _imageForColoring = null;
+        clean();
+        return;
+      }
+
+      rootBundle.loadString(newImageForColoringName).then((svgStr) {
+        return svg.fromSvgString(svgStr, null);
+      }).then((drawable) {
+        print("viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
+        return drawable.toPicture(size: MediaQuery.of(context).size);
+      }).then((picture) {
+        return picture.toImage(MediaQuery.of(context).size.width.ceil(),
+            MediaQuery.of(context).size.height.ceil());
+      }).then((image) {
+        print("image size = ${image.width}*${image.height} desired ${MediaQuery.of(context).size}");
+        image
+            .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
+            .then((byteData) {
+          _imageForColoringByteData = byteData;
+          setState(() {
+            _imageForColoring = image;
+          });
+          clean();
+        });
+      });
+    });
   }
 
   Future<dart_ui.Image> _drawToImage(BuildContext context, double scaleFactor,
@@ -257,28 +290,6 @@ class PaintWidgetState extends State<PaintWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (imageForColoringName != _loadedImageForColoringName) {
-      _loadedImageForColoringName = imageForColoringName;
-      rootBundle.loadString(imageForColoringName).then((svgStr) {
-        return svg.fromSvgString(svgStr, null);
-      }).then((drawable) {
-        return drawable.toPicture(size: MediaQuery.of(context).size);
-      }).then((picture) {
-        return picture.toImage(MediaQuery.of(context).size.width.ceil(),
-            MediaQuery.of(context).size.height.ceil());
-      }).then((image) {
-        image
-            .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
-            .then((byteData) {
-          _imageForColoringByteData = byteData;
-          setState(() {
-            _imageForColoring = image;
-          });
-          _updateCacheBuffer(context);
-        });
-      });
-    }
-
     return new Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) {

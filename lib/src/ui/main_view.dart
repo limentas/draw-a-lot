@@ -26,20 +26,22 @@ class MainViewState extends State<MainView> {
 
   Color _selectedColor = Colors.lightBlue;
 
+  GlobalKey<PaintWidgetState> get paintWidgetKey => _paintWidgetKey;
+
   void undo() {
-    _paintWidgetKey.currentState.undo();
+    paintWidgetKey.currentState.undo();
   }
 
   Future<void> _updateThickness(Future<double> val) async {
     var res = await val;
     if (res != null) {
       print("New thickness: $res");
-      _paintWidgetKey.currentState.penThickness = res;
+      paintWidgetKey.currentState.penThickness = res;
     }
   }
 
   void _updateTool(PaintTool tool) {
-    _paintWidgetKey.currentState.paintTool = tool;
+    paintWidgetKey.currentState.paintTool = tool;
   }
 
   void _showSnackBar(BuildContext context, String text) {
@@ -61,11 +63,11 @@ class MainViewState extends State<MainView> {
     return new Stack(
       children: <Widget>[
         PaintWidget(_selectedColor, _startPaintTool, _startThickness,
-            key: _paintWidgetKey),
+            key: paintWidgetKey),
         Align(
             alignment: Alignment.centerRight,
             child: PalettePanel((newColor) {
-              _paintWidgetKey.currentState.color = newColor;
+              paintWidgetKey.currentState.color = newColor;
             })),
         Align(
             alignment: Alignment.centerLeft,
@@ -83,16 +85,16 @@ class MainViewState extends State<MainView> {
                   },
                   onUndoCalled: () {
                     print("Undo clicked");
-                    _paintWidgetKey.currentState.undo();
+                    paintWidgetKey.currentState.undo();
                   },
                   onRedoCalled: () {
                     print("Redo clicked");
-                    _paintWidgetKey.currentState.redo();
+                    paintWidgetKey.currentState.redo();
                   },
                   onSaveCalled: () {
                     print("Saving picture...");
                     final imageFuture =
-                        _paintWidgetKey.currentState.saveToImage();
+                        paintWidgetKey.currentState.saveToImage();
                     OsFunctions.saveToGallery(imageFuture).catchError((error) {
                       print("An error occurred while saving the image: $error");
                       _showSnackBar(context,
@@ -114,7 +116,7 @@ class MainViewState extends State<MainView> {
                   },
                   onCleanCalled: () {
                     print("Clean clicked");
-                    _paintWidgetKey.currentState.clean();
+                    paintWidgetKey.currentState.clean();
                   },
                 ))),
       ],

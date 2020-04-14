@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'main_view.dart';
-import 'app_drawer.dart';
+import 'scaffold_widget.dart';
 
 class AppWidget extends StatelessWidget {
   final _mainWidgetKey = GlobalKey<MainViewState>();
@@ -25,11 +25,6 @@ class AppWidget extends StatelessWidget {
               _mainWidgetKey.currentState.undo();
               return new Future(() => false);
             },
-            child: Scaffold(
-                extendBodyBehindAppBar: false,
-                resizeToAvoidBottomPadding: false,
-                //drawerEdgeDragWidth: 0,
-                body: MainView(title: 'DrawA̲lot'),
-                drawer: createDrawer())));
+            child: ScaffoldWidget(_mainWidgetKey)));
   }
 }
