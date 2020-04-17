@@ -18,7 +18,7 @@ class ScaffoldWidget extends StatelessWidget {
         resizeToAvoidBottomPadding: false,
         //drawerEdgeDragWidth: 0,
         body: MainView(key: _mainWidgetKey, title: 'DrawA̲lot'),
-        drawer: kIsWeb
+        drawer: kIsWeb || true
             ? null
             : createDrawer(context, onBlankCanvasChoosen: () {
                 _mainWidgetKey.currentState.paintWidgetKey.currentState

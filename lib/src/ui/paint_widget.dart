@@ -49,6 +49,7 @@ class PaintWidgetState extends State<PaintWidget> {
   dart_ui.Image _imageForColoring;
   ByteData _imageForColoringByteData;
   var _loadedImageForColoringName;
+  var _fillFinished = true;
 
   void undo() {
     if (_pathesToDraw.isNotEmpty) {
@@ -105,7 +106,8 @@ class PaintWidgetState extends State<PaintWidget> {
     setState(() {
       if (newImageForColoringName == _loadedImageForColoringName) return;
       _loadedImageForColoringName = newImageForColoringName;
-      if (newImageForColoringName == null || newImageForColoringName.isEmpty) { //switching to blank canvas mode
+      if (newImageForColoringName == null || newImageForColoringName.isEmpty) {
+        //switching to blank canvas mode
         _imageForColoringByteData = null;
         _imageForColoring = null;
         clean();
@@ -115,13 +117,15 @@ class PaintWidgetState extends State<PaintWidget> {
       rootBundle.loadString(newImageForColoringName).then((svgStr) {
         return svg.fromSvgString(svgStr, null);
       }).then((drawable) {
-        print("viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
+        print(
+            "viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
         return drawable.toPicture(size: MediaQuery.of(context).size);
       }).then((picture) {
         return picture.toImage(MediaQuery.of(context).size.width.ceil(),
             MediaQuery.of(context).size.height.ceil());
       }).then((image) {
-        print("image size = ${image.width}*${image.height} desired ${MediaQuery.of(context).size}");
+        print(
+            "image size = ${image.width}*${image.height} desired ${MediaQuery.of(context).size}");
         image
             .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
             .then((byteData) {
@@ -229,25 +233,39 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   void _fillImage(BuildContext contex, Offset mousePosition) {
-    fillImage(_cacheBuffer, _imageForColoringByteData,
-            MediaQuery.of(context).size, mousePosition, color)
-        .then((image) {
-      if (image == null) return;
-      setState(() {
-        if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
-            _cacheHistoryLimit) {
-          HistoryStep
-              item; //removing all items from begin untill and including first cache
-          do {
-            item = _historyToUndo.removeFirst();
-          } while (item.stepType != StepType.Cache);
-        } else {
-          ++_currentCachesInUndoHistory;
+    if (!_fillFinished) return;
+    _fillFinished = false;
+    try {
+      PaintFunctions.fillImage(_cacheBuffer, _imageForColoringByteData,
+              MediaQuery.of(context).size, mousePosition, color)
+          .catchError((e) {
+        print("Fill color error catched: $e");
+        _fillFinished = true;
+      }).then((image) {
+        if (image == null) {
+          _fillFinished = true;
+          return;
         }
-        _historyToUndo.add(HistoryStep.fromCache(image));
-        _cacheBuffer = image;
+        setState(() {
+          if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
+              _cacheHistoryLimit) {
+            HistoryStep
+                item; //removing all items from begin untill and including first cache
+            do {
+              item = _historyToUndo.removeFirst();
+            } while (item.stepType != StepType.Cache);
+          } else {
+            ++_currentCachesInUndoHistory;
+          }
+          _historyToUndo.add(HistoryStep.fromCache(image));
+          _cacheBuffer = image;
+          _fillFinished = true;
+        });
       });
-    });
+    } catch (err) {
+      print("Fill color error: $err");
+      _fillFinished = true;
+    }
   }
 
   void _onMouseDown(BuildContext contex, PointerDownEvent event) {
