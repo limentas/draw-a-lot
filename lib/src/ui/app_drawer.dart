@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Drawer createDrawer(BuildContext context,
-    {void Function() onBlankCanvasChoosen,
+    {void Function() onSaveToGallery,
+    void Function() onBlankCanvasChoosen,
     void Function() onColoringPicChoosen}) {
   return Drawer(
       semanticLabel: "Menu",
@@ -27,19 +28,28 @@ Drawer createDrawer(BuildContext context,
                 ),
               ),
               ListTile(
+                leading: Icon(Icons.save),
+                title: Text('Save to the gallery',
+                    style: TextStyle(
+                      fontSize: 18,
+                    )),
+                onTap: onSaveToGallery,
+              ),
+              ListTile(
                 leading: Icon(Icons.brush),
-                title: Text('Blank canvas'),
+                title: Text('New blank canvas',
+                    style: TextStyle(
+                      fontSize: 18,
+                    )),
                 onTap: onBlankCanvasChoosen,
               ),
               ListTile(
-                leading: Icon(Icons.image),
-                title: Text('Coloring mode'),
-                onTap: onColoringPicChoosen
-              ),
-              ListTile(
-                leading: Icon(Icons.settings),
-                title: Text('Settings'),
-              ),
+                  leading: Icon(Icons.image),
+                  title: Text('Coloring mode',
+                      style: TextStyle(
+                        fontSize: 18,
+                      )),
+                  onTap: onColoringPicChoosen),
             ],
           )),
           RichText(
@@ -60,7 +70,7 @@ Drawer createDrawer(BuildContext context,
               child: Icon(Icons.launch, size: 14),
             ),
           ])),
-          SizedBox(height: 30)
+          SizedBox(height: 20)
         ],
       ));
 }

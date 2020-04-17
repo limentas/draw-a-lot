@@ -18,9 +18,11 @@ class ScaffoldWidget extends StatelessWidget {
         resizeToAvoidBottomPadding: false,
         //drawerEdgeDragWidth: 0,
         body: MainView(key: _mainWidgetKey, title: 'DrawA̲lot'),
-        drawer: kIsWeb || true
+        drawer: kIsWeb
             ? null
-            : createDrawer(context, onBlankCanvasChoosen: () {
+            : createDrawer(context,
+            onSaveToGallery: () => _mainWidgetKey.currentState.saveToGallery(),
+            onBlankCanvasChoosen: () {
                 _mainWidgetKey.currentState.paintWidgetKey.currentState
                     .setImageForColoring(null);
               }, onColoringPicChoosen: () {

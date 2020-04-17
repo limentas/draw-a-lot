@@ -13,8 +13,8 @@ class ToolsPanel extends StatelessWidget {
       this.onThicknessChanged,
       this.onUndoCalled,
       this.onRedoCalled,
-      this.onSaveCalled,
-      this.onCleanCalled});
+      this.onLockCalled,
+      this.onMenuCalled});
 
   final _thicknessButtonKey = GlobalKey<ToolButtonState>();
   final _fillButtonKey = GlobalKey<ToolButtonState>();
@@ -28,8 +28,8 @@ class ToolsPanel extends StatelessWidget {
   final void Function() onUndoCalled;
   final void Function() onRedoCalled;
 
-  final void Function() onSaveCalled;
-  final void Function() onCleanCalled;
+  final void Function() onLockCalled;
+  final void Function() onMenuCalled;
 
   void _updateTool(PaintTool tool) {
     onPaintToolChanged(tool);
@@ -40,7 +40,7 @@ class ToolsPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Column(children: <Widget>[
-      SizedBox(height: 15),
+      SizedBox(height: 20),
       ToolButton(
         key: _thicknessButtonKey,
         imageIcon: AssetImage('icons/brush_thickness.png'),
@@ -50,7 +50,7 @@ class ToolsPanel extends StatelessWidget {
           final buttonHeight =
               min(80.0, MediaQuery.of(context).size.height / 5 - 12);
           var thicknessFuture =
-              showThicknessDialog(context, buttonHeight, 10.0, _thickness);
+              showThicknessDialog(context, buttonHeight, 20.0, _thickness);
           onThicknessChanged(thicknessFuture);
         },
       ),
@@ -62,7 +62,7 @@ class ToolsPanel extends StatelessWidget {
           startToggled: _startTool == PaintTool.Fill,
           disabled: kIsWeb == true,
           onPressed: () => _updateTool(PaintTool.Fill)),
-      const Spacer(flex: 6),
+      const Spacer(flex: 10),
       ToolButton(
           iconData: Icons.undo,
           color: Colors.blue[900],
@@ -72,19 +72,18 @@ class ToolsPanel extends StatelessWidget {
           iconData: Icons.redo,
           color: Colors.blue[900],
           onPressed: onRedoCalled),
-      const Spacer(flex: 6),
+      const Spacer(flex: 10),
       ToolButton(
-          iconData: Icons.save,
+          iconData: Icons.fullscreen,
           color: Colors.indigo[900],
-          disabled: kIsWeb,
-          onPressed: onSaveCalled),
+          onPressed: onLockCalled),
       const Spacer(),
       ToolButton(
-          iconData: Icons.delete_outline,
-          color: Colors.red[900],
-          onPressed: onCleanCalled),
+          iconData: Icons.menu,
+          color: Colors.grey[900],
+          onPressed: onMenuCalled),
       const SizedBox(
-        height: 15,
+        height: 20,
       ),
     ]);
   }

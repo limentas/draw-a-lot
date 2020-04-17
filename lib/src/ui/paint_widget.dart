@@ -104,15 +104,16 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void setImageForColoring(String newImageForColoringName) {
     setState(() {
-      if (newImageForColoringName == _loadedImageForColoringName) return;
-      _loadedImageForColoringName = newImageForColoringName;
       if (newImageForColoringName == null || newImageForColoringName.isEmpty) {
         //switching to blank canvas mode
+        _loadedImageForColoringName = newImageForColoringName;
         _imageForColoringByteData = null;
         _imageForColoring = null;
         clean();
         return;
       }
+      if (newImageForColoringName == _loadedImageForColoringName) return;
+      _loadedImageForColoringName = newImageForColoringName;
 
       rootBundle.loadString(newImageForColoringName).then((svgStr) {
         return svg.fromSvgString(svgStr, null);
