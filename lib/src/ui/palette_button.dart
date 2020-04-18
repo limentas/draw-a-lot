@@ -1,5 +1,3 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 import 'palette_pick_color_dialog.dart';
@@ -7,18 +5,24 @@ import 'package:draw_a_lot/src/app_config.dart';
 
 class PaletteButton extends StatefulWidget {
   PaletteButton(
-      Color myColor, Color selectedColor, List<Color> colorsToChoiseFrom,
-      {Key key, void Function(Color) onPressed})
+      {@required Color myColor,
+      @required Color selectedColor,
+      List<Color> colorsToChoiseFrom,
+      @required double buttonSize,
+      Key key,
+      void Function(Color) onPressed})
       : _myColor = myColor,
         _selectedColor = selectedColor,
         _colorsToChoiseFrom = colorsToChoiseFrom,
         _onPressed = onPressed,
+        _buttonSize = buttonSize,
         super(key: key);
 
   final Color _myColor;
   final Color _selectedColor;
   final List<Color> _colorsToChoiseFrom;
   final void Function(Color) _onPressed;
+  final double _buttonSize;
 
   @override
   PaletteButtonState createState() =>
@@ -48,15 +52,17 @@ class PaletteButtonState extends State<PaletteButton> {
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = max(30.0, MediaQuery.of(context).size.height / 9 - 10);
-    final height = selected ? buttonSize * 0.7 : buttonSize;
-    return ButtonTheme(
-        height: height,
-        minWidth: buttonSize,
-        child: RaisedButton(
+    //final buttonSize = max(30.0, MediaQuery.of(context).size.height / 9 - 10);
+    final height = selected ? widget._buttonSize * 0.7 : widget._buttonSize;
+    return Padding(
+        padding: EdgeInsets.all(1),
+        child: ButtonTheme(
+            height: height,
+            //  minWidth: buttonSize,
+            child: RaisedButton(
           color: currentColor,
           shape: CircleBorder(),
-          materialTapTargetSize: buttonSize < 48
+          materialTapTargetSize: widget._buttonSize < 48
               ? MaterialTapTargetSize.shrinkWrap
               : MaterialTapTargetSize.padded,
           elevation:
@@ -77,8 +83,8 @@ class PaletteButtonState extends State<PaletteButton> {
             RenderBox box = context.findRenderObject();
             var colorFuture = showColorPickDialog(
                 context,
-                box.localToGlobal(Offset.zero).dy - (buttonSize - height) / 2,
-                buttonSize,
+                box.localToGlobal(Offset.zero).dy - (widget._buttonSize - height) / 2,
+                widget._buttonSize,
                 currentColor,
                 widget._colorsToChoiseFrom);
             colorFuture.then((color) {
@@ -89,6 +95,6 @@ class PaletteButtonState extends State<PaletteButton> {
               widget._onPressed(currentColor);
             });
           },
-        ));
+        )));
   }
 }

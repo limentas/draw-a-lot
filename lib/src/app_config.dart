@@ -1,3 +1,3 @@
 class AppConfig {
-  static var fullAccess = false;
+  static var fullAccess = true;
 }

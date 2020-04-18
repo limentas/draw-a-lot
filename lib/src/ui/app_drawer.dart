@@ -15,6 +15,9 @@ Drawer createDrawer(BuildContext context,
               child: ListView(
             padding: EdgeInsets.zero,
             children: <Widget>[
+              SizedBox(
+                height: 80,
+                child: 
               DrawerHeader(
                 decoration: BoxDecoration(
                   color: Colors.blue,
@@ -26,15 +29,7 @@ Drawer createDrawer(BuildContext context,
                     fontSize: 24,
                   ),
                 ),
-              ),
-              ListTile(
-                leading: Icon(Icons.save),
-                title: Text('Save to the gallery',
-                    style: TextStyle(
-                      fontSize: 18,
-                    )),
-                onTap: onSaveToGallery,
-              ),
+              )),
               ListTile(
                 leading: Icon(Icons.brush),
                 title: Text('New blank canvas',
@@ -50,6 +45,15 @@ Drawer createDrawer(BuildContext context,
                         fontSize: 18,
                       )),
                   onTap: onColoringPicChoosen),
+              ListTile(),
+              ListTile(
+                leading: Icon(Icons.save),
+                title: Text('Save to the gallery',
+                    style: TextStyle(
+                      fontSize: 18,
+                    )),
+                onTap: onSaveToGallery,
+              ),
             ],
           )),
           RichText(

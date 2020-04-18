@@ -2,8 +2,12 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 
-Future<Color> showColorPickDialog(BuildContext context, double y, double buttonSize,
-    Color currentColor, List<Color> colorsToChoiceFrom) async {
+Future<Color> showColorPickDialog(
+    BuildContext context,
+    double y,
+    double buttonSize,
+    Color currentColor,
+    List<Color> colorsToChoiceFrom) async {
   return showGeneralDialog<Color>(
       context: context,
       barrierDismissible: true,
@@ -25,8 +29,8 @@ Future<Color> showColorPickDialog(BuildContext context, double y, double buttonS
       });
 }
 
-List<Widget> listButtonsForDialog(double screenWidth, double buttonSize, Color currentColor,
-    List<Color> colorsToChoiceFrom) {
+List<Widget> listButtonsForDialog(double screenWidth, double buttonSize,
+    Color currentColor, List<Color> colorsToChoiceFrom) {
   var res = List<Widget>();
 
   for (var color in colorsToChoiceFrom)
@@ -45,23 +49,28 @@ class ColorButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ButtonTheme(
-        padding: EdgeInsets.all(0),
-        height: buttonSize,
-        minWidth: buttonSize,
-        child: RaisedButton(
-          color: color,
-          highlightColor: Colors.yellowAccent[100],
-          elevation: _defaultElevation,
-          focusElevation: _defaultElevation,
-          hoverElevation: _defaultElevation * 3,
-          highlightElevation: 0,
-          shape: RoundedRectangleBorder(
-              side: BorderSide.none,
-              borderRadius: BorderRadius.all(Radius.circular(buttonSize))),
-          onPressed: () {
-            Navigator.of(context).pop(color);
-          },
-        ));
+    return Padding(
+        padding: EdgeInsets.all(1),
+        child: ButtonTheme(
+            padding: EdgeInsets.all(0),
+            height: buttonSize,
+            minWidth: buttonSize,
+            child: RaisedButton(
+              color: color,
+              materialTapTargetSize: buttonSize < 48
+              ? MaterialTapTargetSize.shrinkWrap
+              : MaterialTapTargetSize.padded,
+              highlightColor: Colors.yellowAccent[100],
+              elevation: _defaultElevation,
+              focusElevation: _defaultElevation,
+              hoverElevation: _defaultElevation * 3,
+              highlightElevation: 0,
+              shape: RoundedRectangleBorder(
+                  side: BorderSide.none,
+                  borderRadius: BorderRadius.all(Radius.circular(buttonSize))),
+              onPressed: () {
+                Navigator.of(context).pop(color);
+              },
+            )));
   }
 }
