@@ -21,9 +21,10 @@ class PaintFunctions {
       dart_ui.Size size,
       dart_ui.Offset point,
       dart_ui.Color color) async {
+    Uint8List constraintBuffer;
     if (constraintImageData != null) {
       //checking for constraint hit
-      final constraintBuffer = constraintImageData.buffer.asUint8List();
+      constraintBuffer = constraintImageData.buffer.asUint8List();
       final base =
           (point.dx.toInt() + point.dy.toInt() * size.width.ceil()) * 4;
       final colorFromConstraint = Color.fromRgba(
@@ -32,9 +33,10 @@ class PaintFunctions {
           constraintBuffer[base + 2],
           constraintBuffer[base + 3]);
 
+      print("colorFromConstraint " + colorFromConstraint.toString());
       final colorBlack = Color.fromColor(Colors.black);
-      if (colorFromConstraint.alpha > 100 &&
-          colorFromConstraint.difference(colorBlack) < 10) {
+      print("color diff " + colorFromConstraint.difference(colorBlack).toString());
+      if (checkConstraint(colorFromConstraint)) {
         print("Pointed to constraint");
         return null;
       }
@@ -42,16 +44,20 @@ class PaintFunctions {
 
     if (image == null) {
       //no cache value
-      return _perfomFill(null, size, point, color);
+      return _perfomFill(null, constraintBuffer, size, point, color);
     }
 
     final byteData =
         await image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
-    return _perfomFill(byteData, size, point, color);
+    return _perfomFill(byteData, constraintBuffer, size, point, color);
   }
 
-  static Future<dart_ui.Image> _perfomFill(ByteData imageData,
-      dart_ui.Size size, dart_ui.Offset point, dart_ui.Color color) {
+  static Future<dart_ui.Image> _perfomFill(
+      ByteData imageData,
+      Uint8List constraintBuffer,
+      dart_ui.Size size,
+      dart_ui.Offset point,
+      dart_ui.Color color) {
     final mouseX = point.dx.toInt();
     final mouseY = point.dy.toInt();
     final width = size.width.ceil();
@@ -72,6 +78,12 @@ class PaintFunctions {
     final colorReplaceTo = Color.fromColor(color);
     if (colorToReplace == colorReplaceTo) return null;
 
+    final base = (mouseX + mouseY * width) * 4;
+    bitmap.content[base] = color.red;
+    bitmap.content[base + 1] = color.green;
+    bitmap.content[base + 2] = color.blue;
+    bitmap.content[base + 3] = color.alpha;
+
     final queue = DoubleLinkedQueue.of([
       [mouseX, mouseY]
     ]);
@@ -86,50 +98,58 @@ class PaintFunctions {
     ++_curUsedValueForVisited;
     _visitedPixels[mouseX][mouseY] = _curUsedValueForVisited;
 
-    while (queue.isNotEmpty) {
-      final item = queue.removeFirst();
-      final x = item.first;
-      final y = item.last;
+    //check neighbors (left, right, top, bottom)
+    final checkNeighbor = (x, y) {
+      final colorToCheck = getImageColorSafe(x, y);
+      if (colorToCheck == colorReplaceTo) return;
 
-      //check neighbors (left, right, top, bottom)
-      final checkNeighbor = (x, y) {
-        final colorToCheck = getImageColorSafe(x, y);
-        if (colorToCheck == colorReplaceTo) return;
+      final base = (x + y * width) * 4;
+      final colorFromConstraint = Color.fromRgba(
+          constraintBuffer[base],
+          constraintBuffer[base + 1],
+          constraintBuffer[base + 2],
+          constraintBuffer[base + 3]);
 
-        if (colorToCheck == colorToReplace) {
+      if (checkConstraint(colorFromConstraint)) return;
+
+      if (_visitedPixels[x][y] == _curUsedValueForVisited) return;
+
+      if (colorToCheck == colorToReplace) { //need to change this particular color   
+        bitmap.content[base] = color.red;
+        bitmap.content[base + 1] = color.green;
+        bitmap.content[base + 2] = color.blue;
+        bitmap.content[base + 3] = color.alpha;
+
+        queue.add([x, y]);
+      } else if (colorToCheck != null) {
+        var diff = colorToCheck.difference(colorToReplace);
+        if (diff < 800) {
           final base = (x + y * width) * 4;
           bitmap.content[base] = color.red;
           bitmap.content[base + 1] = color.green;
           bitmap.content[base + 2] = color.blue;
           bitmap.content[base + 3] = color.alpha;
-
-          if (_visitedPixels[x][y] != _curUsedValueForVisited) {
-            queue.add([x, y]);
-            _visitedPixels[x][y] = _curUsedValueForVisited;
-          }
-        } else if (colorToCheck != null) {
-          var diff = colorToCheck.difference(colorToReplace);
-          if (diff < 800) {
-            final base = (x + y * width) * 4;
-            bitmap.content[base] = color.red;
-            bitmap.content[base + 1] = color.green;
-            bitmap.content[base + 2] = color.blue;
-            bitmap.content[base + 3] = color.alpha;
-          }
-          if (diff < 283 && _visitedPixels[x][y] != _curUsedValueForVisited) {
-            final base = (x + y * width) * 4;
-            bitmap.content[base] = ((color.red + colorToCheck.red) / 2).round();
-            bitmap.content[base + 1] =
-                ((color.green + colorToCheck.green) / 2).round();
-            bitmap.content[base + 2] =
-                ((color.blue + colorToCheck.blue) / 2).round();
-            bitmap.content[base + 3] =
-                ((color.alpha + colorToCheck.alpha) / 2).round();
-            queue.add([x, y]);
-            _visitedPixels[x][y] = _curUsedValueForVisited;
-          }
         }
-      };
+        if (diff < 283) {
+          final base = (x + y * width) * 4;
+          bitmap.content[base] = ((color.red + colorToCheck.red) / 2).round();
+          bitmap.content[base + 1] =
+              ((color.green + colorToCheck.green) / 2).round();
+          bitmap.content[base + 2] =
+              ((color.blue + colorToCheck.blue) / 2).round();
+          bitmap.content[base + 3] =
+              ((color.alpha + colorToCheck.alpha) / 2).round();
+          //queue.add([x, y]);
+        }
+      }
+
+      _visitedPixels[x][y] = _curUsedValueForVisited;
+    };
+
+    while (queue.isNotEmpty) {
+      final item = queue.removeFirst();
+      final x = item.first;
+      final y = item.last;
 
       checkNeighbor(x - 1, y);
       checkNeighbor(x + 1, y);
@@ -139,4 +159,9 @@ class PaintFunctions {
 
     return bitmap.buildImage();
   }
+}
+
+bool checkConstraint(Color colorFromConstraint) {
+  final colorBlack = Color.fromColor(Colors.black);
+  return colorFromConstraint.alpha > 100 && colorFromConstraint.difference(colorBlack) < 100;
 }
