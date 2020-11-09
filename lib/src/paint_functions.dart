@@ -35,8 +35,9 @@ class PaintFunctions {
 
       print("colorFromConstraint " + colorFromConstraint.toString());
       final colorBlack = Color.fromColor(Colors.black);
-      print("color diff " + colorFromConstraint.difference(colorBlack).toString());
-      if (checkConstraint(colorFromConstraint)) {
+      print("color diff " +
+          colorFromConstraint.difference(colorBlack).toString());
+      if (checkConstraintExact(colorFromConstraint)) {
         print("Pointed to constraint");
         return null;
       }
@@ -101,20 +102,25 @@ class PaintFunctions {
     //check neighbors (left, right, top, bottom)
     final checkNeighbor = (x, y) {
       final colorToCheck = getImageColorSafe(x, y);
+      if (colorToCheck == null) return;
       if (colorToCheck == colorReplaceTo) return;
 
       final base = (x + y * width) * 4;
-      final colorFromConstraint = Color.fromRgba(
-          constraintBuffer[base],
-          constraintBuffer[base + 1],
-          constraintBuffer[base + 2],
-          constraintBuffer[base + 3]);
 
-      if (checkConstraint(colorFromConstraint)) return;
+      if (constraintBuffer != null) {
+        final colorFromConstraint = Color.fromRgba(
+            constraintBuffer[base],
+            constraintBuffer[base + 1],
+            constraintBuffer[base + 2],
+            constraintBuffer[base + 3]);
+
+        if (checkConstraintExact(colorFromConstraint)) return;
+      }
 
       if (_visitedPixels[x][y] == _curUsedValueForVisited) return;
 
-      if (colorToCheck == colorToReplace) { //need to change this particular color   
+      if (colorToCheck == colorToReplace) {
+        //need to change this particular color
         bitmap.content[base] = color.red;
         bitmap.content[base + 1] = color.green;
         bitmap.content[base + 2] = color.blue;
@@ -123,24 +129,25 @@ class PaintFunctions {
         queue.add([x, y]);
       } else if (colorToCheck != null) {
         var diff = colorToCheck.difference(colorToReplace);
-        if (diff < 800) {
+        if (diff < 600) {
           final base = (x + y * width) * 4;
           bitmap.content[base] = color.red;
           bitmap.content[base + 1] = color.green;
           bitmap.content[base + 2] = color.blue;
           bitmap.content[base + 3] = color.alpha;
+          print("diff = " + diff.toString());
         }
-        if (diff < 283) {
-          final base = (x + y * width) * 4;
-          bitmap.content[base] = ((color.red + colorToCheck.red) / 2).round();
-          bitmap.content[base + 1] =
-              ((color.green + colorToCheck.green) / 2).round();
-          bitmap.content[base + 2] =
-              ((color.blue + colorToCheck.blue) / 2).round();
-          bitmap.content[base + 3] =
-              ((color.alpha + colorToCheck.alpha) / 2).round();
-          //queue.add([x, y]);
-        }
+        // else if (diff < 283) {
+        //   final base = (x + y * width) * 4;
+        //   bitmap.content[base] = ((color.red + colorToCheck.red) / 2).round();
+        //   bitmap.content[base + 1] =
+        //       ((color.green + colorToCheck.green) / 2).round();
+        //   bitmap.content[base + 2] =
+        //       ((color.blue + colorToCheck.blue) / 2).round();
+        //   bitmap.content[base + 3] =
+        //       ((color.alpha + colorToCheck.alpha) / 2).round();
+        //   //queue.add([x, y]);
+        // }
       }
 
       _visitedPixels[x][y] = _curUsedValueForVisited;
@@ -155,13 +162,24 @@ class PaintFunctions {
       checkNeighbor(x + 1, y);
       checkNeighbor(x, y - 1);
       checkNeighbor(x, y + 1);
+
+      if (x == 0 && y == 0) {
+        var a = 5;
+      }
     }
 
     return bitmap.buildImage();
   }
 }
 
-bool checkConstraint(Color colorFromConstraint) {
+bool checkConstraintExact(Color colorFromConstraint) {
   final colorBlack = Color.fromColor(Colors.black);
-  return colorFromConstraint.alpha > 100 && colorFromConstraint.difference(colorBlack) < 100;
+  return colorFromConstraint.alpha > 200 &&
+      colorFromConstraint.difference(colorBlack) < 300;
+}
+
+bool checkConstraintApprox(Color colorFromConstraint) {
+  final colorBlack = Color.fromColor(Colors.black);
+  return colorFromConstraint.alpha > 100 &&
+      colorFromConstraint.difference(colorBlack) < 100;
 }

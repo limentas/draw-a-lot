@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:flutter/services.dart';
@@ -15,6 +16,10 @@ class OsFunctions {
   static Future<bool> saveToGallery(Future<Image> imageFuture) async {
     final imageBytes = await imageFuture
         .then((image) => image.toByteData(format: ImageByteFormat.png));
+
+    var myFile = new File('1.png').absolute;
+    myFile.writeAsBytesSync(imageBytes.buffer.asInt8List());
+    print("file: " + myFile.path);
 
     _ensureInit();
 

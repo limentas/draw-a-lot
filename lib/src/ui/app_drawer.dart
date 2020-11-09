@@ -16,35 +16,41 @@ Drawer createDrawer(BuildContext context,
             padding: EdgeInsets.zero,
             children: <Widget>[
               SizedBox(
-                height: 80,
-                child: 
-              DrawerHeader(
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                ),
-                child: Text(
-                  'DrawA̲lot',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24,
-                  ),
-                ),
-              )),
+                  height: 80,
+                  child: DrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Colors.blue,
+                    ),
+                    child: Text(
+                      'DrawA̲lot',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                      ),
+                    ),
+                  )),
               ListTile(
                 leading: Icon(Icons.brush),
                 title: Text('New blank canvas',
                     style: TextStyle(
                       fontSize: 18,
                     )),
-                onTap: onBlankCanvasChoosen,
+                onTap: () {
+                  Navigator.pop(context);
+                  onBlankCanvasChoosen();
+                },
               ),
               ListTile(
-                  leading: Icon(Icons.image),
-                  title: Text('Coloring mode',
-                      style: TextStyle(
-                        fontSize: 18,
-                      )),
-                  onTap: onColoringPicChoosen),
+                leading: Icon(Icons.image),
+                title: Text('Coloring mode',
+                    style: TextStyle(
+                      fontSize: 18,
+                    )),
+                onTap: () {
+                  Navigator.pop(context);
+                  onColoringPicChoosen();
+                },
+              ),
               ListTile(),
               ListTile(
                 leading: Icon(Icons.save),
@@ -52,7 +58,10 @@ Drawer createDrawer(BuildContext context,
                     style: TextStyle(
                       fontSize: 18,
                     )),
-                onTap: onSaveToGallery,
+                onTap: () {
+                  Navigator.pop(context);
+                  onSaveToGallery();
+                },
               ),
             ],
           )),

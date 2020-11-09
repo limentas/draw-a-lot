@@ -21,25 +21,26 @@ class ScaffoldWidget extends StatelessWidget {
         drawer: kIsWeb
             ? null
             : createDrawer(context,
-            onSaveToGallery: () => _mainWidgetKey.currentState.saveToGallery(),
-            onBlankCanvasChoosen: () {
-                _mainWidgetKey.currentState.paintWidgetKey.currentState
-                    .setImageForColoring(null);
-              }, onColoringPicChoosen: () {
-                showGeneralDialog<String>(
-                    context: context,
-                    barrierDismissible: true,
-                    barrierLabel: "",
-                    transitionDuration: Duration(milliseconds: 100),
-                    pageBuilder: (context, animation, secondaryAnimation) {
-                      return ColoringPicsGallery();
-                    }).then((path) {
-                  if (path != null) {
-                    _mainWidgetKey.currentState.paintWidgetKey.currentState
-                        .setImageForColoring(path);
-                    Navigator.of(context).pop();
-                  }
-                });
-              }));
+                onSaveToGallery: () =>
+                    _mainWidgetKey.currentState.saveToGallery(),
+                onBlankCanvasChoosen: () {
+                  _mainWidgetKey.currentState.paintWidgetKey.currentState
+                      .setImageForColoring(null);
+                },
+                onColoringPicChoosen: () {
+                  showGeneralDialog<String>(
+                      context: context,
+                      barrierDismissible: true,
+                      barrierLabel: "",
+                      transitionDuration: Duration(milliseconds: 100),
+                      pageBuilder: (context, animation, secondaryAnimation) {
+                        return ColoringPicsGallery();
+                      }).then((path) {
+                    if (path != null) {
+                      _mainWidgetKey.currentState.paintWidgetKey.currentState
+                          .setImageForColoring(path);
+                    }
+                  });
+                }));
   }
 }
