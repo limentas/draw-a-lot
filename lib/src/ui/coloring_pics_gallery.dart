@@ -33,6 +33,13 @@ class ColoringPicsGallery extends StatelessWidget {
   }
 
   List<String> listPicturesFilePathes() {
-    return ["pictures/cowboy.svg", "pictures/crab.svg", "pictures/dinos.svg"];
+    return [
+      "pictures/cowboy.svg",
+      "pictures/crab.svg",
+      "pictures/dinos.svg",
+      "pictures/rabbit.svg",
+      "pictures/monkey.svg",
+      "pictures/elephant.svg"
+    ];
   }
 }

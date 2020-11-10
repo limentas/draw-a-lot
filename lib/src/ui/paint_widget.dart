@@ -120,7 +120,8 @@ class PaintWidgetState extends State<PaintWidget> {
       }).then((drawable) {
         print(
             "viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
-        return drawable.toPicture(size: MediaQuery.of(context).size);
+        return drawable.toPicture(
+            size: MediaQuery.of(context).size, clipToViewBox: false);
       }).then((picture) {
         return picture.toImage(MediaQuery.of(context).size.width.ceil(),
             MediaQuery.of(context).size.height.ceil());
