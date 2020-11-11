@@ -39,7 +39,9 @@ class ColoringPicsGallery extends StatelessWidget {
       "pictures/dinos.svg",
       "pictures/rabbit.svg",
       "pictures/monkey.svg",
-      "pictures/elephant.svg"
+      "pictures/elephant.svg",
+      "pictures/giraffe.svg",
+      "pictures/mouse.svg"
     ];
   }
 }
