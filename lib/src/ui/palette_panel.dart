@@ -104,14 +104,16 @@ class PalettePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var buttonSize = max(
-        30.0,
+        48.0,
         min(MediaQuery.of(context).size.height / 9 - 10,
             (MediaQuery.of(context).size.width - 90) / 14 - 2));
     //return Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
+    print("buttonSize = $buttonSize");
     return SizedBox(
         width: buttonSize,
         child: Stack(children: [
           ListView(children: <Widget>[
+            SizedBox(height: buttonSize / 2),
             PaletteButton(
               myColor: Colors.white,
               selectedColor: _startColor,
@@ -296,6 +298,7 @@ class PalettePanel extends StatelessWidget {
                 _updateSelectedColor(color);
               },
             ),
+            SizedBox(height: buttonSize / 2),
           ]),
           Align(
               alignment: Alignment.topCenter,

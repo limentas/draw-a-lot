@@ -62,9 +62,7 @@ class PaintWidgetState extends State<PaintWidget> {
           _updateCacheBuffer(context, forceUpdateCache: true);
         }
       });
-    } else if (_historyToUndo.isNotEmpty &&
-        (_historyToUndo.length != 1 ||
-            _historyToUndo.first.stepType != StepType.Cache)) {
+    } else if (_historyToUndo.isNotEmpty) {
       var last = _historyToUndo.removeLast();
       //for redo this step in case of cache we should add current cache to redo list
       if (last.stepType == StepType.Cache) {

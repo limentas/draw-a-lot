@@ -113,6 +113,7 @@ class MainViewState extends State<MainView>
     var query = MediaQuery.of(context);
     print(
         "Screen size: ${query.size}, ratio: ${query.devicePixelRatio}, text scale factor: ${query.textScaleFactor}");
+    print("ratio: ${WidgetsBinding.instance.window.devicePixelRatio}");
 
     return new Stack(
       children: <Widget>[
@@ -124,16 +125,19 @@ class MainViewState extends State<MainView>
                 position: _uiLockingUnlockAnimation,
                 child: Padding(
                     padding: EdgeInsets.only(top: 20),
-                    child: RaisedButton.icon(
-                        onPressed: () => _unlockUi(),
-                        icon: Icon(Icons.fullscreen_exit, size: 40),
-                        label: Text("Show toolbars",
-                            style: TextStyle(fontSize: 18)),
-                        color: Colors.white,
-                        elevation: 10,
-                        shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.all(Radius.circular(8))))))),
+                    child: ButtonTheme(
+                        minWidth: 100.0,
+                        height: 48.0,
+                        child: RaisedButton.icon(
+                            onPressed: () => _unlockUi(),
+                            icon: Icon(Icons.fullscreen_exit, size: 30),
+                            label: Text("Show toolbars",
+                                style: TextStyle(fontSize: 18)),
+                            color: Colors.white,
+                            elevation: 10,
+                            shape: RoundedRectangleBorder(
+                                borderRadius:
+                                    BorderRadius.all(Radius.circular(8)))))))),
         Align(
             alignment: Alignment.centerRight,
             child: SlideTransition(

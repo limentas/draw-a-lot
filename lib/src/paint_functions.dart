@@ -33,10 +33,10 @@ class PaintFunctions {
           constraintBuffer[base + 2],
           constraintBuffer[base + 3]);
 
-      print("colorFromConstraint " + colorFromConstraint.toString());
-      final colorBlack = Color.fromColor(Colors.black);
-      print("color diff " +
-          colorFromConstraint.difference(colorBlack).toString());
+      //print("colorFromConstraint " + colorFromConstraint.toString());
+      //final colorBlack = Color.fromColor(Colors.black);
+      //print("color diff " +
+      //    colorFromConstraint.difference(colorBlack).toString());
       if (checkConstraintExact(colorFromConstraint)) {
         print("Pointed to constraint");
         return null;
@@ -135,7 +135,6 @@ class PaintFunctions {
           bitmap.content[base + 1] = color.green;
           bitmap.content[base + 2] = color.blue;
           bitmap.content[base + 3] = color.alpha;
-          print("diff = " + diff.toString());
         }
         // else if (diff < 283) {
         //   final base = (x + y * width) * 4;

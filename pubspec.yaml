@@ -27,6 +27,7 @@ dependencies:
   bitmap: ^0.0.6
   flutter_svg: ^0.19.1
   url_launcher: ^5.7.2
+  flutter_spinkit: ^4.1.2
 
 dev_dependencies:
   flutter_test:

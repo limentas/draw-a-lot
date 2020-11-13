@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'coloring_pic_preview.dart';
 
 class ColoringPicsGallery extends StatelessWidget {
+  final _scrollController = ScrollController();
   @override
   Widget build(BuildContext context) {
     return Dialog(
@@ -11,17 +12,22 @@ class ColoringPicsGallery extends StatelessWidget {
           mainAxisSize: MainAxisSize.max,
           children: <Widget>[
             Expanded(
-                child: GridView.count(
-                    crossAxisCount: 3,
-                    padding: EdgeInsets.all(20),
-                    children: listPicturesFilePathes().map<Widget>((path) {
-                      return ColoringPicPreview(
-                        path: path,
-                        onClicked: (chosedPath) {
-                          Navigator.of(context).pop(chosedPath);
-                        },
-                      );
-                    }).toList())),
+                child: Scrollbar(
+                    controller: _scrollController,
+                    isAlwaysShown: true,
+                    child: GridView.count(
+                        controller: _scrollController,
+                        crossAxisCount: 3,
+                        padding: EdgeInsets.all(20),
+                        children: listPicturesFilePathes().map<Widget>((path) {
+                          return ColoringPicPreview(
+                            path: path,
+                            onClicked: (chosedPath) {
+                              Navigator.of(context).pop(chosedPath);
+                            },
+                          );
+                        }).toList()))),
+            SizedBox(height: 20),
             OutlineButton(
                 onPressed: () {
                   Navigator.of(context).pop(null);
