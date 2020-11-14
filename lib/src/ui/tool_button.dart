@@ -43,7 +43,7 @@ class ToolButtonState extends State<ToolButton> {
   @override
   Widget build(BuildContext context) {
     final buttonSize =
-        min(max(50.0, MediaQuery.of(context).size.height / 9 - 4), 80.0);
+        min(max(46.0, MediaQuery.of(context).size.height / 9 - 4), 80.0);
     return new ButtonTheme(
         height: buttonSize,
         minWidth: buttonSize,

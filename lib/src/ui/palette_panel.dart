@@ -108,7 +108,6 @@ class PalettePanel extends StatelessWidget {
         min(MediaQuery.of(context).size.height / 9 - 10,
             (MediaQuery.of(context).size.width - 90) / 14 - 2));
     //return Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
-    print("buttonSize = $buttonSize");
     return SizedBox(
         width: buttonSize,
         child: Stack(children: [

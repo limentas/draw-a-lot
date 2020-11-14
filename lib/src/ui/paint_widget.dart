@@ -4,12 +4,13 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/svg.dart';
+import 'package:flutter/services.dart';
 
-import 'package:draw_a_lot/src/path_part.dart';
+import 'package:draw_a_lot/src/pen_path.dart';
 import 'package:draw_a_lot/src/history_step.dart';
 import 'package:draw_a_lot/src/paint_functions.dart';
 import 'package:draw_a_lot/src/paint_tool.dart';
-import 'package:flutter/services.dart';
+import 'package:draw_a_lot/src/paint_data.dart';
 
 class PaintWidget extends StatefulWidget {
   PaintWidget(this.color, this._paintTool, this._penThickness, {key})
@@ -33,46 +34,46 @@ class PaintWidgetState extends State<PaintWidget> {
   double penThickness = 0.0;
   PaintTool paintTool = PaintTool.Pen;
 
-  Queue<PathPart> _pathesToDraw = new Queue<PathPart>();
-
   //FIFO - last element was added last
   var _historyToUndo = new DoubleLinkedQueue<HistoryStep>();
   //LIFO - first element in history was las inserted
   var _historyToRedo = new DoubleLinkedQueue<HistoryStep>();
 
-  dart_ui.Image _cacheBuffer;
-
   final _cacheHistoryLimit = 7;
   var _currentCachesInUndoHistory = 0;
   var _currentCachesInRedoHistory = 0;
 
-  dart_ui.Image _imageForColoring;
+  final PaintData _paintData = new PaintData();
   ByteData _imageForColoringByteData;
   var _loadedImageForColoringName;
   var _fillFinished = true;
+  var _repaintNotifier = new ChangeNotifier();
+  var _cacheUpdateInProgress = false;
+  var _updateCacheEnqueued = false;
+  var _forceUpdateCacheEnqueued = false;
 
   void undo() {
-    if (_pathesToDraw.isNotEmpty) {
-      setState(() {
-        final lastChange = _pathesToDraw.removeLast();
-        lastChange.completed = true;
-        _historyToRedo.addLast(HistoryStep.fromPath(lastChange));
-        if (lastChange.cached) {
-          //needs to redraw cache
-          _updateCacheBuffer(context, forceUpdateCache: true);
-        }
-      });
+    if (_paintData.pathesToDraw.isNotEmpty) {
+      final lastChange = _paintData.pathesToDraw.removeLast();
+      lastChange.completed = true;
+      _historyToRedo.addLast(HistoryStep.fromPath(lastChange));
+      if (lastChange.cached) {
+        //needs to redraw cache
+        _enqueueUpdateCacheBuffer(forceUpdate: true);
+      } else {
+        repaint();
+      }
     } else if (_historyToUndo.isNotEmpty) {
       var last = _historyToUndo.removeLast();
       //for redo this step in case of cache we should add current cache to redo list
       if (last.stepType == StepType.Cache) {
         --_currentCachesInUndoHistory;
         ++_currentCachesInRedoHistory;
-        _historyToRedo.addFirst(HistoryStep.fromCache(_cacheBuffer));
+        _historyToRedo.addFirst(HistoryStep.fromCache(_paintData.cacheBuffer));
       } else {
         _historyToRedo.addFirst(last);
       }
-      _updateCacheBuffer(context, forceUpdateCache: true);
+      _enqueueUpdateCacheBuffer(forceUpdate: true);
     }
   }
 
@@ -84,7 +85,7 @@ class PaintWidgetState extends State<PaintWidget> {
       --_currentCachesInRedoHistory;
     }
     _historyToUndo.addLast(first);
-    _updateCacheBuffer(context, forceUpdateCache: true);
+    _enqueueUpdateCacheBuffer(forceUpdate: true);
   }
 
   void clean() {
@@ -92,8 +93,8 @@ class PaintWidgetState extends State<PaintWidget> {
     _historyToUndo = new DoubleLinkedQueue<HistoryStep>();
     _currentCachesInRedoHistory = _currentCachesInUndoHistory;
     _currentCachesInUndoHistory = 0;
-    _pathesToDraw.clear();
-    _updateCacheBuffer(context, forceUpdateCache: true);
+    _paintData.pathesToDraw.clear();
+    _enqueueUpdateCacheBuffer(forceUpdate: true);
   }
 
   Future<dart_ui.Image> saveToImage() {
@@ -101,40 +102,38 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   void setImageForColoring(String newImageForColoringName) {
-    setState(() {
-      if (newImageForColoringName == null || newImageForColoringName.isEmpty) {
-        //switching to blank canvas mode
-        _loadedImageForColoringName = newImageForColoringName;
-        _imageForColoringByteData = null;
-        _imageForColoring = null;
-        clean();
-        return;
-      }
-      if (newImageForColoringName == _loadedImageForColoringName) return;
+    if (newImageForColoringName == null || newImageForColoringName.isEmpty) {
+      //switching to blank canvas mode
       _loadedImageForColoringName = newImageForColoringName;
+      _imageForColoringByteData = null;
+      _paintData.imageForColoring = null;
+      clean();
+      repaint();
+      return;
+    }
+    if (newImageForColoringName == _loadedImageForColoringName) return;
+    _loadedImageForColoringName = newImageForColoringName;
 
-      rootBundle.loadString(newImageForColoringName).then((svgStr) {
-        return svg.fromSvgString(svgStr, null);
-      }).then((drawable) {
-        print(
-            "viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
-        return drawable.toPicture(
-            size: MediaQuery.of(context).size, clipToViewBox: true);
-      }).then((picture) {
-        return picture.toImage(MediaQuery.of(context).size.width.ceil(),
-            MediaQuery.of(context).size.height.ceil());
-      }).then((image) {
-        print(
-            "image size = ${image.width}*${image.height} desired ${MediaQuery.of(context).size}");
-        image
-            .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
-            .then((byteData) {
-          _imageForColoringByteData = byteData;
-          setState(() {
-            _imageForColoring = image;
-          });
-          clean();
-        });
+    rootBundle.loadString(newImageForColoringName).then((svgStr) {
+      return svg.fromSvgString(svgStr, null);
+    }).then((drawable) {
+      print(
+          "viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
+      return drawable.toPicture(
+          size: MediaQuery.of(context).size, clipToViewBox: true);
+    }).then((picture) {
+      return picture.toImage(MediaQuery.of(context).size.width.ceil(),
+          MediaQuery.of(context).size.height.ceil());
+    }).then((image) {
+      print(
+          "image size = ${image.width}*${image.height} desired ${MediaQuery.of(context).size}");
+      image
+          .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
+          .then((byteData) {
+        _imageForColoringByteData = byteData;
+        _paintData.imageForColoring = image;
+        clean();
+        repaint();
       });
     });
   }
@@ -178,55 +177,73 @@ class PaintWidgetState extends State<PaintWidget> {
               ..isAntiAlias = true);
         entry = entry.nextEntry();
       }
-    } else if (_cacheBuffer == null) {
+    } else if (_paintData.cacheBuffer == null) {
       canvas.drawRect(
           Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
               imageSize.height.ceilToDouble()),
           new Paint()..color = Colors.white);
     } else {
-      canvas.drawImage(_cacheBuffer, Offset(0, 0), Paint());
+      canvas.drawImage(_paintData.cacheBuffer, Offset(0, 0), Paint());
     }
 
-    for (var part in _pathesToDraw) {
-      if (!part.completed) continue;
+    for (var path in _paintData.pathesToDraw) {
+      if (!path.completed) continue;
       canvas.drawPath(
-          part.path,
+          path.path,
           new Paint()
-            ..color = part.color
+            ..color = path.color
             ..style = PaintingStyle.stroke
-            ..strokeWidth = part.penWidth
+            ..strokeWidth = path.penWidth
             ..strokeCap = StrokeCap.round
             ..strokeJoin = StrokeJoin.round
             ..isAntiAlias = true);
-      part.cached = true;
+      path.cached = true;
     }
 
-    if (_imageForColoring != null)
-      canvas.drawImage(_imageForColoring, Offset(0, 0),
-          Paint()..blendMode = BlendMode.darken);
+    // if (_paintData.imageForColoring != null)
+    //   canvas.drawImage(_paintData.imageForColoring, Offset(0, 0),
+    //       Paint()..blendMode = BlendMode.darken);
 
     return recorder
         .endRecording()
         .toImage(imageSize.width.ceil(), imageSize.height.ceil());
   }
 
-  void _updateCacheBuffer(BuildContext context,
-      {bool forceUpdateCache: false}) {
+  void _enqueueUpdateCacheBuffer({bool forceUpdate: false}) {
+    if (_cacheUpdateInProgress) {
+      _updateCacheEnqueued = true;
+      //if new update is forced, then enqueue force update
+      if (forceUpdate) _forceUpdateCacheEnqueued = true;
+      return;
+    }
+
+    _cacheUpdateInProgress = true;
+    _updateCacheBuffer(forceUpdate: forceUpdate).then((value) {
+      _cacheUpdateInProgress = false;
+      if (_updateCacheEnqueued) {
+        _updateCacheEnqueued = false;
+        _enqueueUpdateCacheBuffer(forceUpdate: _forceUpdateCacheEnqueued);
+      }
+    });
+  }
+
+  Future<void> _updateCacheBuffer({bool forceUpdate: false}) {
     if (kIsWeb)
-      return; //There is some bug in canvas.drawImage and cache does not work properly
+      return new Future
+          .value(); //There is some bug in canvas.drawImage and cache does not work properly
 
-    var imageFuture = _drawToImage(context, 1.0, redrawCache: forceUpdateCache);
+    var imageFuture = _drawToImage(context, 1.0, redrawCache: forceUpdate);
 
-    imageFuture.then((value) {
-      setState(() {
-        _cacheBuffer = value;
+    return imageFuture.then((value) {
+      _paintData.cacheBuffer = value;
 
-        var cachedPathes = _pathesToDraw.where((element) => element.cached);
-        for (var path in cachedPathes)
-          _historyToUndo.add(HistoryStep.fromPath(path));
+      var cachedPathes =
+          _paintData.pathesToDraw.where((element) => element.cached);
+      for (var path in cachedPathes)
+        _historyToUndo.add(HistoryStep.fromPath(path));
 
-        _pathesToDraw.removeWhere((element) => element.cached);
-      });
+      _paintData.pathesToDraw.removeWhere((element) => element.cached);
+      repaint();
     }).catchError((error) {
       print("Update cache error $error");
     });
@@ -236,8 +253,12 @@ class PaintWidgetState extends State<PaintWidget> {
     if (!_fillFinished) return;
     _fillFinished = false;
     try {
-      PaintFunctions.fillImage(_cacheBuffer, _imageForColoringByteData,
-              MediaQuery.of(context).size, mousePosition, color)
+      PaintFunctions.fillImage(
+              _paintData.cacheBuffer,
+              _imageForColoringByteData,
+              MediaQuery.of(context).size,
+              mousePosition,
+              color)
           .catchError((e) {
         print("Fill color error catched: $e");
         _fillFinished = true;
@@ -246,21 +267,20 @@ class PaintWidgetState extends State<PaintWidget> {
           _fillFinished = true;
           return;
         }
-        setState(() {
-          if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
-              _cacheHistoryLimit) {
-            HistoryStep
-                item; //removing all items from begin untill and including first cache
-            do {
-              item = _historyToUndo.removeFirst();
-            } while (item.stepType != StepType.Cache);
-          } else {
-            ++_currentCachesInUndoHistory;
-          }
-          _historyToUndo.add(HistoryStep.fromCache(image));
-          _cacheBuffer = image;
-          _fillFinished = true;
-        });
+        if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
+            _cacheHistoryLimit) {
+          //removing all items from begin untill and including first cache
+          HistoryStep item;
+          do {
+            item = _historyToUndo.removeFirst();
+          } while (item.stepType != StepType.Cache);
+        } else {
+          ++_currentCachesInUndoHistory;
+        }
+        _historyToUndo.add(HistoryStep.fromCache(image));
+        _paintData.cacheBuffer = image;
+        _fillFinished = true;
+        repaint();
       });
     } catch (err) {
       print("Fill color error: $err");
@@ -270,10 +290,13 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void _onMouseDown(BuildContext contex, PointerDownEvent event) {
     if (paintTool == PaintTool.Pen) {
-      var pathPart =
-          new PathPart(color: color, penWidth: penThickness, path: Path());
+      var pathPart = new PenPath(
+          color: color,
+          penWidth: penThickness,
+          pointerId: event.pointer,
+          path: Path());
       pathPart.path.moveTo(event.position.dx, event.position.dy);
-      _pathesToDraw.add(pathPart);
+      _paintData.pathesToDraw.add(pathPart);
     } else if (paintTool == PaintTool.Fill) {
       _fillImage(contex, event.position);
     }
@@ -286,20 +309,23 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void _onMouseMove(PointerMoveEvent event) {
     if (paintTool == PaintTool.Pen) {
-      setState(() {
-        _pathesToDraw.last.path.lineTo(event.position.dx, event.position.dy);
-      });
+      var path = _paintData.pathesToDraw
+          .firstWhere((element) => element.pointerId == event.pointer);
+      if (path == null) return;
+      path.path.lineTo(event.position.dx, event.position.dy);
+      repaint();
     } else if (paintTool == PaintTool.Fill) {}
   }
 
   void _onMouseUp(PointerUpEvent event) {
     if (paintTool == PaintTool.Pen) {
-      setState(() {
-        _pathesToDraw.last.path.lineTo(event.position.dx, event.position.dy);
-        _pathesToDraw.last.completed = true;
-      });
+      var path = _paintData.pathesToDraw
+          .firstWhere((element) => element.pointerId == event.pointer);
+      if (path == null) return;
+      path.path.lineTo(event.position.dx, event.position.dy);
+      path.completed = true;
       try {
-        _updateCacheBuffer(context);
+        _enqueueUpdateCacheBuffer();
       } catch (error) {
         print("err = $error");
       }
@@ -320,35 +346,32 @@ class PaintWidgetState extends State<PaintWidget> {
           _onMouseUp(event);
         },
         child: CustomPaint(
-          painter:
-              _CustomPainter(_pathesToDraw, _cacheBuffer, _imageForColoring),
+          painter: _CustomPainter(_paintData, _repaintNotifier),
           size: Size.infinite,
           isComplex: true,
         ));
   }
+
+  void repaint() {
+    _repaintNotifier.notifyListeners();
+  }
 }
 
 class _CustomPainter extends CustomPainter {
-  _CustomPainter(Queue<PathPart> pathesToDraw, dart_ui.Image cacheBuffer,
-      dart_ui.Image imageForColoring)
-      : _pathesToDraw = pathesToDraw,
-        _cacheBuffer = cacheBuffer,
-        _imageForColoring = imageForColoring;
+  _CustomPainter(this._paintData, Listenable repaint) : super(repaint: repaint);
 
-  Queue<PathPart> _pathesToDraw;
-  dart_ui.Image _cacheBuffer;
-  dart_ui.Image _imageForColoring;
+  final PaintData _paintData;
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (_cacheBuffer == null) {
+    if (_paintData.cacheBuffer == null) {
       canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
           new Paint()..color = Colors.white);
     } else {
-      canvas.drawImage(_cacheBuffer, Offset(0, 0), Paint());
+      canvas.drawImage(_paintData.cacheBuffer, Offset(0, 0), Paint());
     }
 
-    for (var path in _pathesToDraw) {
+    for (var path in _paintData.pathesToDraw) {
       canvas.drawPath(
           path.path,
           new Paint()
@@ -360,8 +383,8 @@ class _CustomPainter extends CustomPainter {
             ..isAntiAlias = true);
     }
 
-    if (_imageForColoring != null)
-      canvas.drawImage(_imageForColoring, Offset(0, 0),
+    if (_paintData.imageForColoring != null)
+      canvas.drawImage(_paintData.imageForColoring, Offset(0, 0),
           Paint()..blendMode = BlendMode.darken);
   }
 

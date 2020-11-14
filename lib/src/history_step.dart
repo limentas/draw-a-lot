@@ -1,6 +1,6 @@
 import 'dart:ui' as dart_ui;
 
-import 'path_part.dart';
+import 'pen_path.dart';
 
 enum StepType { Path, Cache }
 
@@ -10,6 +10,6 @@ class HistoryStep {
 
   final stepType;
 
-  PathPart path;
+  PenPath path;
   dart_ui.Image cache;
 }
