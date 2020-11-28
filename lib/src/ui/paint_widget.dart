@@ -1,8 +1,10 @@
 import 'dart:collection';
 import 'dart:ui' as dart_ui;
+import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:flutter/services.dart';
 
@@ -51,6 +53,9 @@ class PaintWidgetState extends State<PaintWidget> {
   var _cacheUpdateInProgress = false;
   var _updateCacheEnqueued = false;
   var _forceUpdateCacheEnqueued = false;
+  Size _screenPhysicalSize;
+  Size _screenLogicalSize;
+  double _devicePixelRatio; //Look at MediaQuery.of(context).devicePixelRatio
 
   void undo() {
     if (_paintData.pathesToDraw.isNotEmpty) {
@@ -98,7 +103,8 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   Future<dart_ui.Image> saveToImage() {
-    return _drawToImage(context, MediaQuery.of(context).devicePixelRatio);
+    //return Future.value(_paintData.imageForColoring);
+    return _drawToImage(_screenPhysicalSize);
   }
 
   void setImageForColoring(String newImageForColoringName) {
@@ -119,32 +125,29 @@ class PaintWidgetState extends State<PaintWidget> {
     }).then((drawable) {
       print(
           "viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
-      return drawable.toPicture(
-          size: MediaQuery.of(context).size, clipToViewBox: true);
+      _paintData.rootForColoring = drawable;
+      return drawable.toPicture(size: _screenPhysicalSize, clipToViewBox: true);
     }).then((picture) {
-      return picture.toImage(MediaQuery.of(context).size.width.ceil(),
-          MediaQuery.of(context).size.height.ceil());
+      _paintData.pictureForColoring = picture;
+      return picture.toImage((_screenPhysicalSize.width).ceil(),
+          (_screenPhysicalSize.height).ceil());
     }).then((image) {
-      print(
-          "image size = ${image.width}*${image.height} desired ${MediaQuery.of(context).size}");
       image
           .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
           .then((byteData) {
         _imageForColoringByteData = byteData;
         _paintData.imageForColoring = image;
+
         clean();
         repaint();
       });
     });
   }
 
-  Future<dart_ui.Image> _drawToImage(BuildContext context, double scaleFactor,
+  Future<dart_ui.Image> _drawToImage(Size imageSize,
       {bool redrawCache: false}) {
     var recorder = new dart_ui.PictureRecorder();
-    var imageSize = MediaQuery.of(context).size * scaleFactor;
     var canvas = Canvas(recorder);
-
-    if (scaleFactor != 1) canvas.scale(scaleFactor);
 
     if (redrawCache) {
       var entry = _historyToUndo.lastEntry();
@@ -157,10 +160,11 @@ class PaintWidgetState extends State<PaintWidget> {
         entry = entry.nextEntry(); //begining from next to cache path
       } else {
         //no cache image in history
-        canvas.drawRect(
-            Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
-                imageSize.height.ceilToDouble()),
-            new Paint()..color = Colors.white);
+        canvas.drawColor(Colors.white, BlendMode.src);
+        // canvas.drawRect(
+        //     Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
+        //         imageSize.height.ceilToDouble()),
+        //     new Paint()..color = Colors.white);
         entry = _historyToUndo.firstEntry(); //begining from first entry
       }
 
@@ -178,14 +182,17 @@ class PaintWidgetState extends State<PaintWidget> {
         entry = entry.nextEntry();
       }
     } else if (_paintData.cacheBuffer == null) {
-      canvas.drawRect(
-          Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
-              imageSize.height.ceilToDouble()),
-          new Paint()..color = Colors.white);
+      // canvas.drawRect(
+      //     Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
+      //         imageSize.height.ceilToDouble()),
+      //     new Paint()..color = Colors.white);
+      canvas.drawColor(Colors.white, BlendMode.src);
     } else {
       canvas.drawImage(_paintData.cacheBuffer, Offset(0, 0), Paint());
     }
 
+    canvas.save();
+    canvas.scale(_devicePixelRatio);
     for (var path in _paintData.pathesToDraw) {
       if (!path.completed) continue;
       canvas.drawPath(
@@ -199,6 +206,7 @@ class PaintWidgetState extends State<PaintWidget> {
             ..isAntiAlias = true);
       path.cached = true;
     }
+    canvas.restore();
 
     // if (_paintData.imageForColoring != null)
     //   canvas.drawImage(_paintData.imageForColoring, Offset(0, 0),
@@ -232,7 +240,8 @@ class PaintWidgetState extends State<PaintWidget> {
       return new Future
           .value(); //There is some bug in canvas.drawImage and cache does not work properly
 
-    var imageFuture = _drawToImage(context, 1.0, redrawCache: forceUpdate);
+    var imageFuture =
+        _drawToImage(_screenPhysicalSize, redrawCache: forceUpdate);
 
     return imageFuture.then((value) {
       _paintData.cacheBuffer = value;
@@ -249,15 +258,16 @@ class PaintWidgetState extends State<PaintWidget> {
     });
   }
 
-  void _fillImage(BuildContext contex, Offset mousePosition) {
+  void _fillImage(BuildContext contex, Offset mouseLogicalPosition) {
     if (!_fillFinished) return;
     _fillFinished = false;
     try {
+      final stopwatch = Stopwatch()..start();
       PaintFunctions.fillImage(
               _paintData.cacheBuffer,
               _imageForColoringByteData,
-              MediaQuery.of(context).size,
-              mousePosition,
+              _screenPhysicalSize,
+              mouseLogicalPosition * _devicePixelRatio,
               color)
           .catchError((e) {
         print("Fill color error catched: $e");
@@ -267,6 +277,7 @@ class PaintWidgetState extends State<PaintWidget> {
           _fillFinished = true;
           return;
         }
+        print("Image filled for ${stopwatch.elapsed}");
         if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
             _cacheHistoryLimit) {
           //removing all items from begin untill and including first cache
@@ -281,6 +292,7 @@ class PaintWidgetState extends State<PaintWidget> {
         _paintData.cacheBuffer = image;
         _fillFinished = true;
         repaint();
+        print("Image filled2 for ${stopwatch.elapsed}");
       });
     } catch (err) {
       print("Fill color error: $err");
@@ -334,6 +346,10 @@ class PaintWidgetState extends State<PaintWidget> {
 
   @override
   Widget build(BuildContext context) {
+    _screenLogicalSize = MediaQuery.of(context).size;
+    _devicePixelRatio = MediaQuery.of(context).devicePixelRatio;
+    _screenPhysicalSize = _screenLogicalSize * _devicePixelRatio;
+
     return new Listener(
         behavior: HitTestBehavior.opaque,
         onPointerDown: (event) {
@@ -347,7 +363,7 @@ class PaintWidgetState extends State<PaintWidget> {
         },
         child: CustomPaint(
           painter: _CustomPainter(_paintData, _repaintNotifier),
-          size: Size.infinite,
+          size: _screenLogicalSize,
           isComplex: true,
         ));
   }
@@ -365,10 +381,16 @@ class _CustomPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (_paintData.cacheBuffer == null) {
-      canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
-          new Paint()..color = Colors.white);
+      // canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
+      //     new Paint()..color = Colors.white);
+      canvas.drawColor(Colors.white, BlendMode.src);
     } else {
-      canvas.drawImage(_paintData.cacheBuffer, Offset(0, 0), Paint());
+      canvas.drawImageRect(
+          _paintData.cacheBuffer,
+          Rect.fromLTRB(0, 0, _paintData.cacheBuffer.width.toDouble(),
+              _paintData.cacheBuffer.height.toDouble()),
+          Rect.fromLTRB(0, 0, size.width, size.height),
+          Paint());
     }
 
     for (var path in _paintData.pathesToDraw) {
@@ -384,7 +406,11 @@ class _CustomPainter extends CustomPainter {
     }
 
     if (_paintData.imageForColoring != null)
-      canvas.drawImage(_paintData.imageForColoring, Offset(0, 0),
+      canvas.drawImageRect(
+          _paintData.imageForColoring,
+          Rect.fromLTRB(0, 0, _paintData.imageForColoring.width.toDouble(),
+              _paintData.imageForColoring.height.toDouble()),
+          Rect.fromLTRB(0, 0, size.width, size.height),
           Paint()..blendMode = BlendMode.darken);
   }
 

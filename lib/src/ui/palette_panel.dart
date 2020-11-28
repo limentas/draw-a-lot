@@ -96,6 +96,7 @@ class PalettePanel extends StatelessWidget {
       Colors.grey[600],
       Colors.grey[700],
       Colors.grey[800],
+      Colors.grey[850],
       Colors.grey[900],
       Colors.black,
     ];

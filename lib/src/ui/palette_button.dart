@@ -60,41 +60,43 @@ class PaletteButtonState extends State<PaletteButton> {
             height: height,
             //  minWidth: buttonSize,
             child: RaisedButton(
-          color: currentColor,
-          shape: CircleBorder(),
-          materialTapTargetSize: widget._buttonSize < 48
-              ? MaterialTapTargetSize.shrinkWrap
-              : MaterialTapTargetSize.padded,
-          elevation:
-              selected ? _toggledButtonElevation : _defaultButtonElevation,
-          focusElevation:
-              selected ? _toggledButtonElevation : _defaultButtonElevation,
-          hoverElevation:
-              selected ? _toggledButtonElevation : _defaultButtonElevation,
-          highlightElevation: _toggledButtonElevation,
-          onPressed: () {
-            widget._onPressed(currentColor);
-          },
-          onLongPress: () {
-            if (!AppConfig.fullAccess) return;
-            if (widget._colorsToChoiseFrom == null ||
-                widget._colorsToChoiseFrom.isEmpty) return;
+              color: currentColor,
+              shape: CircleBorder(),
+              materialTapTargetSize: widget._buttonSize < 48
+                  ? MaterialTapTargetSize.shrinkWrap
+                  : MaterialTapTargetSize.padded,
+              elevation:
+                  selected ? _toggledButtonElevation : _defaultButtonElevation,
+              focusElevation:
+                  selected ? _toggledButtonElevation : _defaultButtonElevation,
+              hoverElevation:
+                  selected ? _toggledButtonElevation : _defaultButtonElevation,
+              highlightElevation: _toggledButtonElevation,
+              onPressed: () {
+                widget._onPressed(currentColor);
+              },
+              onLongPress: () {
+                if (widget._colorsToChoiseFrom == null ||
+                    widget._colorsToChoiseFrom.isEmpty) return;
 
-            RenderBox box = context.findRenderObject();
-            var colorFuture = showColorPickDialog(
-                context,
-                box.localToGlobal(Offset.zero).dy - (widget._buttonSize - height) / 2,
-                widget._buttonSize,
-                currentColor,
-                widget._colorsToChoiseFrom);
-            colorFuture.then((color) {
-              if (color != null)
-                setState(() {
-                  currentColor = color;
+                widget._onPressed(currentColor);
+
+                RenderBox box = context.findRenderObject();
+                var colorFuture = showColorPickDialog(
+                    context,
+                    box.localToGlobal(Offset.zero).dy -
+                        (widget._buttonSize - height) / 2,
+                    widget._buttonSize,
+                    currentColor,
+                    widget._colorsToChoiseFrom);
+                colorFuture.then((color) {
+                  if (color != null)
+                    setState(() {
+                      currentColor = color;
+                    });
+                  widget._onPressed(currentColor);
                 });
-              widget._onPressed(currentColor);
-            });
-          },
-        )));
+              },
+            )));
   }
 }

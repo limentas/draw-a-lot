@@ -12,25 +12,42 @@ Future<Color> showColorPickDialog(
       context: context,
       barrierDismissible: true,
       barrierLabel: "",
-      barrierColor: Color.fromARGB(0, 1, 1, 1),
+      barrierColor: Color.fromARGB(0, 0, 0, 0),
       transitionDuration: Duration(milliseconds: 100),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return new Align(
-            alignment: Alignment.topLeft,
-            child: Padding(
-                padding: EdgeInsets.only(top: y),
-                child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: listButtonsForDialog(
-                        MediaQuery.of(context).size.width,
-                        buttonSize,
-                        currentColor,
-                        colorsToChoiceFrom))));
+        final minSideIndent = buttonSize + 12;
+        //Button size must be not more than buttonSize * 2
+        var pickButtonSize = min(buttonSize, buttonSize * 2);
+        var colors = listButtonsForDialog(
+            pickButtonSize, currentColor, colorsToChoiceFrom);
+        var columnsCount =
+            MediaQuery.of(context).size.width - 2 * minSideIndent >
+                    colors.length * pickButtonSize
+                ? colors.length
+                : (colors.length / 2).ceil();
+        var sideIndent = (MediaQuery.of(context).size.width -
+                    (pickButtonSize + 1) * columnsCount) /
+                2 -
+            20 * 5;
+        //Indent must not be less than minSideIndent
+        sideIndent = max(minSideIndent, sideIndent);
+
+        return new Container(
+            alignment: Alignment.bottomLeft,
+            padding: EdgeInsets.only(
+                top: 0, left: sideIndent + 10, right: sideIndent - 10),
+            child: GridView.count(
+                crossAxisCount: columnsCount,
+                padding: EdgeInsets.all(8),
+                mainAxisSpacing: 5,
+                crossAxisSpacing: 3,
+                shrinkWrap: true,
+                children: colors));
       });
 }
 
-List<Widget> listButtonsForDialog(double screenWidth, double buttonSize,
-    Color currentColor, List<Color> colorsToChoiceFrom) {
+List<Widget> listButtonsForDialog(
+    double buttonSize, Color currentColor, List<Color> colorsToChoiceFrom) {
   var res = List<Widget>();
 
   for (var color in colorsToChoiceFrom)
@@ -44,7 +61,7 @@ class ColorButton extends StatelessWidget {
 
   final Color color;
   final double buttonSize;
-  final double _defaultElevation = 3;
+  final double _defaultElevation = 4;
   final bool toggled;
 
   @override
@@ -58,8 +75,8 @@ class ColorButton extends StatelessWidget {
             child: RaisedButton(
               color: color,
               materialTapTargetSize: buttonSize < 48
-              ? MaterialTapTargetSize.shrinkWrap
-              : MaterialTapTargetSize.padded,
+                  ? MaterialTapTargetSize.shrinkWrap
+                  : MaterialTapTargetSize.padded,
               highlightColor: Colors.yellowAccent[100],
               elevation: _defaultElevation,
               focusElevation: _defaultElevation,

@@ -4,34 +4,29 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-
 import 'package:bitmap/bitmap.dart';
 
 import 'color.dart';
 
 class PaintFunctions {
-  static List<List<int>> _visitedPixels;
+  static Uint32List _visitedPixels;
   static int _curUsedValueForVisited = 0;
 
-  static final _maxUsedValueForVisited = pow(2, 52);
+  static final _maxUsedValueForVisited = pow(2, 31);
 
   static Future<dart_ui.Image> fillImage(
       dart_ui.Image image,
       ByteData constraintImageData,
-      dart_ui.Size size,
-      dart_ui.Offset point,
+      dart_ui.Size constraintImageSize,
+      dart_ui.Offset physicalPoint,
       dart_ui.Color color) async {
-    Uint8List constraintBuffer;
+    Uint32List constraintBuffer;
     if (constraintImageData != null) {
       //checking for constraint hit
-      constraintBuffer = constraintImageData.buffer.asUint8List();
-      final base =
-          (point.dx.toInt() + point.dy.toInt() * size.width.ceil()) * 4;
-      final colorFromConstraint = Color.fromRgba(
-          constraintBuffer[base],
-          constraintBuffer[base + 1],
-          constraintBuffer[base + 2],
-          constraintBuffer[base + 3]);
+      constraintBuffer = constraintImageData.buffer.asUint32List();
+      final colorFromConstraint = Color.fromRgbaInt(constraintBuffer[
+          physicalPoint.dx.toInt() +
+              physicalPoint.dy.toInt() * constraintImageSize.width.ceil()]);
 
       //print("colorFromConstraint " + colorFromConstraint.toString());
       //final colorBlack = Color.fromColor(Colors.black);
@@ -43,113 +38,106 @@ class PaintFunctions {
       }
     }
 
+    Future<dart_ui.Image> result;
     if (image == null) {
       //no cache value
-      return _perfomFill(null, constraintBuffer, size, point, color);
+      result = _perfomFill(
+          null, constraintBuffer, constraintImageSize, physicalPoint, color);
+    } else {
+      final byteData =
+          await image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
+      result = _perfomFill(byteData, constraintBuffer, constraintImageSize,
+          physicalPoint, color);
     }
-
-    final byteData =
-        await image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
-    return _perfomFill(byteData, constraintBuffer, size, point, color);
+    return result;
   }
 
   static Future<dart_ui.Image> _perfomFill(
       ByteData imageData,
-      Uint8List constraintBuffer,
-      dart_ui.Size size,
-      dart_ui.Offset point,
+      Uint32List constraintBuffer,
+      dart_ui.Size constraintImageSize,
+      dart_ui.Offset physicalPoint,
       dart_ui.Color color) {
-    final mouseX = point.dx.toInt();
-    final mouseY = point.dy.toInt();
-    final width = size.width.ceil();
-    final height = size.height.ceil();
+    final mouseX = physicalPoint.dx.toInt();
+    final mouseY = physicalPoint.dy.toInt();
+    final width = constraintImageSize.width.ceil();
+    final height = constraintImageSize.height.ceil();
 
-    final bitmap = imageData == null
-        ? Bitmap.blank(width, height)
-        : Bitmap.fromHeadless(width, height, imageData.buffer.asUint8List());
-
-    final getImageColorSafe = (x, y) {
-      if (x < 0 || x >= width || y < 0 || y >= height) return null;
-      final base = (x + y * width) * 4;
-
-      return Color.fromRgba(bitmap.content[base], bitmap.content[base + 1],
-          bitmap.content[base + 2], bitmap.content[base + 3]);
-    };
-    final colorToReplace = getImageColorSafe(mouseX, mouseY);
-    final colorReplaceTo = Color.fromColor(color);
-    if (colorToReplace == colorReplaceTo) return null;
-
-    final base = (mouseX + mouseY * width) * 4;
-    bitmap.content[base] = color.red;
-    bitmap.content[base + 1] = color.green;
-    bitmap.content[base + 2] = color.blue;
-    bitmap.content[base + 3] = color.alpha;
-
-    final queue = DoubleLinkedQueue.of([
-      [mouseX, mouseY]
-    ]);
-
-    if (_visitedPixels == null ||
-        _visitedPixels.length != width ||
-        _visitedPixels[0].length != height ||
-        _curUsedValueForVisited > _maxUsedValueForVisited) {
-      _visitedPixels = new List.generate(width, (_) => new List(height));
+    Uint8List imageBufferUint8;
+    Uint32List imageBufferUint32;
+    if (imageData == null) {
+      var byteData = ByteData(width * height * 4);
+      imageBufferUint8 = byteData.buffer.asUint8List();
+      imageBufferUint32 = byteData.buffer.asUint32List();
+    } else {
+      imageBufferUint8 = imageData.buffer.asUint8List();
+      imageBufferUint32 = imageData.buffer.asUint32List();
     }
 
-    ++_curUsedValueForVisited;
-    _visitedPixels[mouseX][mouseY] = _curUsedValueForVisited;
+    final colorToReplace =
+        Color.fromRgbaInt(imageBufferUint32[mouseX + mouseY * width]);
+    final colorToReplaceRgba = colorToReplace.toRgbaInt();
+    final colorReplaceTo = Color.fromColor(color);
+    final colorReplaceToRgba = colorReplaceTo.toRgbaInt();
+    if (colorToReplaceRgba == colorReplaceToRgba) return null;
+
+    imageBufferUint32[mouseX + mouseY * width] = colorReplaceToRgba;
+
+    final capacity = max(width, height);
+    final queue = ListQueue(capacity);
+    queue.addLast([mouseX, mouseY]);
+
+    if (_visitedPixels == null ||
+        _visitedPixels.length != width * height ||
+        _curUsedValueForVisited > _maxUsedValueForVisited) {
+      print("Recreate _visitedPixels array");
+      _visitedPixels = Uint32List(width * height);
+      _curUsedValueForVisited = 0;
+    } else {
+      ++_curUsedValueForVisited;
+    }
+    _visitedPixels[mouseX + mouseY * width] = _curUsedValueForVisited;
 
     //check neighbors (left, right, top, bottom)
     final checkNeighbor = (x, y) {
-      final colorToCheck = getImageColorSafe(x, y);
-      if (colorToCheck == null) return;
-      if (colorToCheck == colorReplaceTo) return;
-
-      final base = (x + y * width) * 4;
+      if (x < 0 || x >= width || y < 0 || y >= height) return;
+      final uint32PixelIndex = x + y * width;
+      if (_visitedPixels[uint32PixelIndex] == _curUsedValueForVisited) return;
 
       if (constraintBuffer != null) {
-        final colorFromConstraint = Color.fromRgba(
-            constraintBuffer[base],
-            constraintBuffer[base + 1],
-            constraintBuffer[base + 2],
-            constraintBuffer[base + 3]);
+        final colorFromConstraint =
+            Color.fromRgbaInt(constraintBuffer[uint32PixelIndex]);
 
-        if (checkConstraintExact(colorFromConstraint)) return;
+        if (checkConstraintExact(colorFromConstraint)) {
+          _visitedPixels[uint32PixelIndex] = _curUsedValueForVisited;
+          return;
+        }
       }
 
-      if (_visitedPixels[x][y] == _curUsedValueForVisited) return;
-
-      if (colorToCheck == colorToReplace) {
+      final colorToCheckRgba = imageBufferUint32[uint32PixelIndex];
+      if (colorToCheckRgba == colorToReplaceRgba) {
         //need to change this particular color
-        bitmap.content[base] = color.red;
-        bitmap.content[base + 1] = color.green;
-        bitmap.content[base + 2] = color.blue;
-        bitmap.content[base + 3] = color.alpha;
-
-        queue.add([x, y]);
-      } else if (colorToCheck != null) {
+        imageBufferUint32[uint32PixelIndex] = colorReplaceToRgba;
+        queue.addLast([x, y]);
+      } else {
+        final colorToCheck = Color.fromRgbaInt(colorToCheckRgba);
         var diff = colorToCheck.difference(colorToReplace);
         if (diff < 600) {
-          final base = (x + y * width) * 4;
-          bitmap.content[base] = color.red;
-          bitmap.content[base + 1] = color.green;
-          bitmap.content[base + 2] = color.blue;
-          bitmap.content[base + 3] = color.alpha;
+          imageBufferUint32[uint32PixelIndex] = colorReplaceToRgba;
+        } else if (diff < 283) {
+          final base = uint32PixelIndex * 4;
+          imageBufferUint8[base] = ((color.red + colorToCheck.red) / 2).round();
+          imageBufferUint8[base + 1] =
+              ((color.green + colorToCheck.green) / 2).round();
+          imageBufferUint8[base + 2] =
+              ((color.blue + colorToCheck.blue) / 2).round();
+          imageBufferUint8[base + 3] =
+              ((color.alpha + colorToCheck.alpha) / 2).round();
+          //queue.add([x, y]);
         }
-        // else if (diff < 283) {
-        //   final base = (x + y * width) * 4;
-        //   bitmap.content[base] = ((color.red + colorToCheck.red) / 2).round();
-        //   bitmap.content[base + 1] =
-        //       ((color.green + colorToCheck.green) / 2).round();
-        //   bitmap.content[base + 2] =
-        //       ((color.blue + colorToCheck.blue) / 2).round();
-        //   bitmap.content[base + 3] =
-        //       ((color.alpha + colorToCheck.alpha) / 2).round();
-        //   //queue.add([x, y]);
-        // }
       }
 
-      _visitedPixels[x][y] = _curUsedValueForVisited;
+      _visitedPixels[uint32PixelIndex] = _curUsedValueForVisited;
     };
 
     while (queue.isNotEmpty) {
@@ -161,19 +149,16 @@ class PaintFunctions {
       checkNeighbor(x + 1, y);
       checkNeighbor(x, y - 1);
       checkNeighbor(x, y + 1);
-
-      if (x == 0 && y == 0) {
-        var a = 5;
-      }
     }
 
+    final bitmap = Bitmap.fromHeadless(width, height, imageBufferUint8);
     return bitmap.buildImage();
   }
 }
 
 bool checkConstraintExact(Color colorFromConstraint) {
   final colorBlack = Color.fromColor(Colors.black);
-  return colorFromConstraint.alpha > 200 &&
+  return colorFromConstraint.alpha > 100 &&
       colorFromConstraint.difference(colorBlack) < 300;
 }
 
