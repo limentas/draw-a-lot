@@ -277,7 +277,6 @@ class PaintWidgetState extends State<PaintWidget> {
           _fillFinished = true;
           return;
         }
-        print("Image filled for ${stopwatch.elapsed}");
         if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
             _cacheHistoryLimit) {
           //removing all items from begin untill and including first cache
@@ -292,7 +291,7 @@ class PaintWidgetState extends State<PaintWidget> {
         _paintData.cacheBuffer = image;
         _fillFinished = true;
         repaint();
-        print("Image filled2 for ${stopwatch.elapsed}");
+        print("Image filled for ${stopwatch.elapsed}");
       });
     } catch (err) {
       print("Fill color error: $err");
