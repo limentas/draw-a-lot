@@ -1,3 +1,4 @@
+import 'package:draw_a_lot/src/app_config.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
@@ -40,18 +41,20 @@ Drawer createDrawer(BuildContext context,
                   onBlankCanvasChoosen();
                 },
               ),
-              ListTile(
-                leading: Icon(Icons.image),
-                title: Text('Coloring mode',
-                    style: TextStyle(
-                      fontSize: 18,
-                    )),
-                onTap: () {
-                  Navigator.pop(context);
-                  onColoringPicChoosen();
-                },
-              ),
-              ListTile(),
+              AppConfig.isX86_32
+                  ? ListTile() //disable coloring mode
+                  : ListTile(
+                      leading: Icon(Icons.image),
+                      title: Text('Coloring mode',
+                          style: TextStyle(
+                            fontSize: 18,
+                          )),
+                      onTap: () {
+                        Navigator.pop(context);
+                        onColoringPicChoosen();
+                      },
+                    ),
+              ListTile(), //spacer
               ListTile(
                 leading: Icon(Icons.save),
                 title: Text('Save to the gallery',

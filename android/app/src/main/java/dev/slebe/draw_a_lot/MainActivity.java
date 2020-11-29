@@ -7,12 +7,14 @@ import java.lang.String;
 import java.util.Date;
 import java.text.SimpleDateFormat;
 import java.io.FileOutputStream;
+import java.util.HashMap;
 
 import android.media.MediaScannerConnection;
 import android.os.Build.VERSION;
 import android.os.Build.VERSION_CODES;
 import android.os.Environment;
 import android.os.Bundle;
+import android.os.Build;
 import android.util.Log;
 import android.net.Uri;
 import androidx.core.app.ActivityCompat;
@@ -23,6 +25,7 @@ import android.content.pm.PackageManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.provider.MediaStore;
+import android.text.TextUtils;
 
 import io.flutter.embedding.android.FlutterActivity;
 import io.flutter.embedding.engine.FlutterEngine;
@@ -52,7 +55,11 @@ public class MainActivity extends FlutterActivity {
       if (call.method.equals("saveImageToGallery")) {
         final byte[] imagePngData = call.argument("imagePngData");
         result.success(saveImageToGallery(imagePngData));
-      } else {
+      }
+      else if (call.method.equals("getSystemInfo")) {
+        result.success(getSystemInfo());
+      }
+      else {
         result.notImplemented();
       }
     });
@@ -225,5 +232,16 @@ public class MainActivity extends FlutterActivity {
         WRITE_PERMISSION_REQUEST_CODE);
 
     return GET_PERMISSION_RESULT_PENDING;
+  }
+
+  private HashMap<String, String> getSystemInfo() {
+    HashMap<String, String> result = new HashMap<String, String>();
+    result.put("SUPPORTED_ABIS", TextUtils.join(",", Build.SUPPORTED_ABIS));
+    result.put("TIME", String.valueOf(Build.TIME));
+    result.put("TAGS", Build.TAGS);
+    result.put("HARDWARE", Build.HARDWARE);
+    result.put("DEVICE", Build.DEVICE);
+    result.put("BRAND", Build.BRAND);
+    return result;
   }
 }

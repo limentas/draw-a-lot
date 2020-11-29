@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:draw_a_lot/src/app_config.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -60,7 +61,7 @@ class ToolsPanel extends StatelessWidget {
           iconData: Icons.format_color_fill,
           color: Colors.green[900],
           startToggled: _startTool == PaintTool.Fill,
-          disabled: kIsWeb == true,
+          disabled: kIsWeb == true || AppConfig.isX86_32,
           onPressed: () => _updateTool(PaintTool.Fill)),
       const Spacer(flex: 10),
       ToolButton(

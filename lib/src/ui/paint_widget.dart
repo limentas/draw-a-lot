@@ -208,9 +208,9 @@ class PaintWidgetState extends State<PaintWidget> {
     }
     canvas.restore();
 
-    // if (_paintData.imageForColoring != null)
-    //   canvas.drawImage(_paintData.imageForColoring, Offset(0, 0),
-    //       Paint()..blendMode = BlendMode.darken);
+    if (_paintData.imageForColoring != null)
+      canvas.drawImage(_paintData.imageForColoring, Offset(0, 0),
+          Paint()..blendMode = BlendMode.darken);
 
     return recorder
         .endRecording()

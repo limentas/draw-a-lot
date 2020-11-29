@@ -92,7 +92,7 @@ class PaintFunctions {
         _curUsedValueForVisited > _maxUsedValueForVisited) {
       print("Recreate _visitedPixels array");
       _visitedPixels = Uint32List(width * height);
-      _curUsedValueForVisited = 0;
+      _curUsedValueForVisited = 1;
     } else {
       ++_curUsedValueForVisited;
     }
