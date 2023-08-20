@@ -236,7 +236,14 @@ public class MainActivity extends FlutterActivity {
 
   private HashMap<String, String> getSystemInfo() {
     HashMap<String, String> result = new HashMap<String, String>();
-    result.put("SUPPORTED_ABIS", TextUtils.join(",", Build.SUPPORTED_ABIS));
+    if (VERSION.SDK_INT >= VERSION_CODES.LOLLIPOP) //API level 21 and higher
+      result.put("SUPPORTED_ABIS", TextUtils.join(",", Build.SUPPORTED_ABIS));
+    else {
+      if (Build.CPU_ABI2.isEmpty())
+        result.put("SUPPORTED_ABIS", Build.CPU_ABI);
+      else
+        result.put("SUPPORTED_ABIS", Build.CPU_ABI + "," + Build.CPU_ABI2);
+    }
     result.put("TIME", String.valueOf(Build.TIME));
     result.put("TAGS", Build.TAGS);
     result.put("HARDWARE", Build.HARDWARE);

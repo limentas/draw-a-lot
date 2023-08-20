@@ -161,13 +161,11 @@ class PaintWidgetState extends State<PaintWidget> {
       } else {
         //no cache image in history
         canvas.drawColor(Colors.white, BlendMode.src);
-        // canvas.drawRect(
-        //     Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
-        //         imageSize.height.ceilToDouble()),
-        //     new Paint()..color = Colors.white);
         entry = _historyToUndo.firstEntry(); //begining from first entry
       }
 
+      canvas.save();
+      canvas.scale(_devicePixelRatio);
       while (entry != null) {
         final part = entry.element.path;
         canvas.drawPath(
@@ -181,11 +179,8 @@ class PaintWidgetState extends State<PaintWidget> {
               ..isAntiAlias = true);
         entry = entry.nextEntry();
       }
+      canvas.restore();
     } else if (_paintData.cacheBuffer == null) {
-      // canvas.drawRect(
-      //     Rect.fromLTWH(0, 0, imageSize.width.ceilToDouble(),
-      //         imageSize.height.ceilToDouble()),
-      //     new Paint()..color = Colors.white);
       canvas.drawColor(Colors.white, BlendMode.src);
     } else {
       canvas.drawImage(_paintData.cacheBuffer, Offset(0, 0), Paint());
@@ -380,8 +375,6 @@ class _CustomPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     if (_paintData.cacheBuffer == null) {
-      // canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height),
-      //     new Paint()..color = Colors.white);
       canvas.drawColor(Colors.white, BlendMode.src);
     } else {
       canvas.drawImageRect(
