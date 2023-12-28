@@ -40,17 +40,35 @@ class ColoringPicsGallery extends StatelessWidget {
 
   List<String> listPicturesFilePathes() {
     return [
+      "pictures/bird.svg",
       "pictures/cowboy.svg",
       "pictures/crab.svg",
+      "pictures/crab2.svg",
+      "pictures/deer.svg",
+      "pictures/dino.svg",
+      //"pictures/dino2.svg",
       "pictures/dinos.svg",
-      "pictures/rabbit.svg",
-      "pictures/monkey.svg",
       "pictures/elephant.svg",
+      "pictures/fish.svg",
       "pictures/giraffe.svg",
+      "pictures/gold_fish.svg",
+      "pictures/hares.svg",
+      "pictures/lion.svg",
+      "pictures/mermaid.svg",
+      "pictures/monkey.svg",
       "pictures/mouse.svg",
       "pictures/penguin.svg",
+      "pictures/penguin2.svg",
+      "pictures/pig.svg",
+      "pictures/rabbit.svg",
+      "pictures/rabbit2.svg",
       "pictures/snowman.svg",
-      "pictures/winter_bear.svg"
+      "pictures/turtle.svg",
+      "pictures/unicorn.svg",
+      "pictures/unicorn2.svg",
+      "pictures/unicorn3.svg",
+      "pictures/unicorn4.svg",
+      "pictures/winter_bear.svg",
     ];
   }
 }

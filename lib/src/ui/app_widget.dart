@@ -15,7 +15,6 @@ class AppWidget extends StatelessWidget {
         [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
     return MaterialApp(
         title: 'DrawA̲lot',
-        debugShowCheckedModeBanner: false,
         theme: ThemeData(
             primarySwatch: Colors.blue,
             buttonColor: Colors.grey[800],

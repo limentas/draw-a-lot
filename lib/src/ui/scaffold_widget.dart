@@ -15,7 +15,7 @@ class ScaffoldWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
         extendBodyBehindAppBar: false,
-        resizeToAvoidBottomPadding: false,
+        resizeToAvoidBottomInset: false,
         //drawerEdgeDragWidth: 0,
         body: MainView(key: _mainWidgetKey, title: 'DrawA̲lot'),
         drawerEnableOpenDragGesture: false,

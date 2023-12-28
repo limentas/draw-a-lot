@@ -32,9 +32,13 @@ class PaintFunctions {
       //final colorBlack = Color.fromColor(Colors.black);
       //print("color diff " +
       //    colorFromConstraint.difference(colorBlack).toString());
-      if (checkConstraintExact(colorFromConstraint)) {
-        print("Pointed to constraint");
-        return null;
+      if (checkConstraintApprox(colorFromConstraint)) {
+        physicalPoint = correctPhysicalPoint(
+            constraintImageData, constraintImageSize, physicalPoint);
+        if (physicalPoint == null) {
+          print("Couldn't correct physicall point");
+          return null;
+        }
       }
     }
 
@@ -50,6 +54,55 @@ class PaintFunctions {
           physicalPoint, color);
     }
     return result;
+  }
+
+  static dart_ui.Offset correctPhysicalPoint(ByteData constraintImageData,
+      dart_ui.Size constraintImageSize, dart_ui.Offset physicalPoint) {
+    final constraintBuffer = constraintImageData.buffer.asUint32List();
+    final width = constraintImageSize.width.ceil();
+    final height = constraintImageSize.height.ceil();
+    final checkNeighbor = (offset) {
+      if (offset.dx < 0 ||
+          offset.dx >= width ||
+          offset.dy < 0 ||
+          offset.dy >= height) return false;
+      final colorFromConstraint = Color.fromRgbaInt(constraintBuffer[
+          offset.dx.toInt() +
+              offset.dy.toInt() * constraintImageSize.width.ceil()]);
+      return !checkConstraintApprox(colorFromConstraint);
+    };
+    for (int radiusDist = 1; radiusDist < width; ++radiusDist) {
+      var radiusDistDouble = radiusDist.toDouble();
+      var point = physicalPoint.translate(radiusDistDouble, 0);
+      if (checkNeighbor(point)) return point;
+      point = physicalPoint.translate(-radiusDistDouble, 0);
+      if (checkNeighbor(point)) return point;
+      point = physicalPoint.translate(0, radiusDistDouble);
+      if (checkNeighbor(point)) return point;
+      point = physicalPoint.translate(0, -radiusDistDouble);
+      if (checkNeighbor(point)) return point;
+
+      for (int chordDist = 1; chordDist <= radiusDist; ++chordDist) {
+        var chortDistDouble = chordDist.toDouble();
+        var point = physicalPoint.translate(radiusDistDouble, chortDistDouble);
+        if (checkNeighbor(point)) return point;
+        point = physicalPoint.translate(radiusDistDouble, -chortDistDouble);
+        if (checkNeighbor(point)) return point;
+        point = physicalPoint.translate(-radiusDistDouble, chortDistDouble);
+        if (checkNeighbor(point)) return point;
+        point = physicalPoint.translate(-radiusDistDouble, -chortDistDouble);
+        if (checkNeighbor(point)) return point;
+        point = physicalPoint.translate(chortDistDouble, radiusDistDouble);
+        if (checkNeighbor(point)) return point;
+        point = physicalPoint.translate(-chortDistDouble, radiusDistDouble);
+        if (checkNeighbor(point)) return point;
+        point = physicalPoint.translate(chortDistDouble, -radiusDistDouble);
+        if (checkNeighbor(point)) return point;
+        point = physicalPoint.translate(-chortDistDouble, -radiusDistDouble);
+        if (checkNeighbor(point)) return point;
+      }
+    }
+    return null;
   }
 
   static Future<dart_ui.Image> _perfomFill(
@@ -165,5 +218,5 @@ bool checkConstraintExact(Color colorFromConstraint) {
 bool checkConstraintApprox(Color colorFromConstraint) {
   final colorBlack = Color.fromColor(Colors.black);
   return colorFromConstraint.alpha > 100 &&
-      colorFromConstraint.difference(colorBlack) < 100;
+      colorFromConstraint.difference(colorBlack) < 600;
 }
