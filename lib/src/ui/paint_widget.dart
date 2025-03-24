@@ -1,12 +1,11 @@
 import 'dart:collection';
 import 'dart:ui' as dart_ui;
-import 'dart:ui';
-import 'package:flutter/gestures.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:flutter/services.dart';
+import 'package:collection/collection.dart';
 
 import 'package:draw_a_lot/src/pen_path.dart';
 import 'package:draw_a_lot/src/history_step.dart';
@@ -16,7 +15,7 @@ import 'package:draw_a_lot/src/paint_data.dart';
 
 class PaintWidget extends StatefulWidget {
   PaintWidget(this.color, this._paintTool, this._penThickness, {key})
-      : super(key: key) {
+    : super(key: key) {
     print("create paint widget");
   }
 
@@ -25,12 +24,18 @@ class PaintWidget extends StatefulWidget {
   final double _penThickness;
 
   @override
-  PaintWidgetState createState() => PaintWidgetState(
-      color: color, paintTool: _paintTool, penThickness: _penThickness);
+  PaintWidgetState createState() =>
+      PaintWidgetState(color, _paintTool, _penThickness);
+}
+
+class RepaintNotifier extends ChangeNotifier {
+  void repaint() {
+    notifyListeners();
+  }
 }
 
 class PaintWidgetState extends State<PaintWidget> {
-  PaintWidgetState({this.color, this.paintTool, this.penThickness});
+  PaintWidgetState(this.color, this.paintTool, this.penThickness);
 
   var color = Colors.black;
   double penThickness = 0.0;
@@ -46,16 +51,17 @@ class PaintWidgetState extends State<PaintWidget> {
   var _currentCachesInRedoHistory = 0;
 
   final PaintData _paintData = new PaintData();
-  ByteData _imageForColoringByteData;
+  ByteData? _imageForColoringByteData;
   var _loadedImageForColoringName;
   var _fillFinished = true;
-  var _repaintNotifier = new ChangeNotifier();
+  var _repaintNotifier = new RepaintNotifier();
   var _cacheUpdateInProgress = false;
   var _updateCacheEnqueued = false;
   var _forceUpdateCacheEnqueued = false;
-  Size _screenPhysicalSize;
-  Size _screenLogicalSize;
-  double _devicePixelRatio; //Look at MediaQuery.of(context).devicePixelRatio
+  late Size _screenPhysicalSize;
+  late Size _screenLogicalSize;
+  //Look at MediaQuery.of(context).devicePixelRatio
+  late double _devicePixelRatio;
 
   void undo() {
     if (_paintData.pathesToDraw.isNotEmpty) {
@@ -70,11 +76,15 @@ class PaintWidgetState extends State<PaintWidget> {
       }
     } else if (_historyToUndo.isNotEmpty) {
       var last = _historyToUndo.removeLast();
-      //for redo this step in case of cache we should add current cache to redo list
+      //to redo this step in case of cache we should add current cache to redo list
       if (last.stepType == StepType.Cache) {
-        --_currentCachesInUndoHistory;
-        ++_currentCachesInRedoHistory;
-        _historyToRedo.addFirst(HistoryStep.fromCache(_paintData.cacheBuffer));
+        if (_paintData.cacheBuffer != null) {
+          --_currentCachesInUndoHistory;
+          ++_currentCachesInRedoHistory;
+          _historyToRedo.addFirst(
+            HistoryStep.fromCache(_paintData.cacheBuffer!),
+          );
+        }
       } else {
         _historyToRedo.addFirst(last);
       }
@@ -108,7 +118,7 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   void setImageForColoring(String newImageForColoringName) {
-    if (newImageForColoringName == null || newImageForColoringName.isEmpty) {
+    if (newImageForColoringName.isEmpty) {
       //switching to blank canvas mode
       _loadedImageForColoringName = newImageForColoringName;
       _imageForColoringByteData = null;
@@ -120,32 +130,35 @@ class PaintWidgetState extends State<PaintWidget> {
     if (newImageForColoringName == _loadedImageForColoringName) return;
     _loadedImageForColoringName = newImageForColoringName;
 
-    rootBundle.loadString(newImageForColoringName).then((svgStr) {
-      return svg.fromSvgString(svgStr, null);
-    }).then((drawable) {
-      print(
-          "viewport = ${drawable.viewport} rec = ${drawable.viewport.viewBoxRect}");
-      _paintData.rootForColoring = drawable;
-      return drawable.toPicture(size: _screenPhysicalSize, clipToViewBox: true);
-    }).then((picture) {
-      _paintData.pictureForColoring = picture;
-      return picture.toImage((_screenPhysicalSize.width).ceil(),
-          (_screenPhysicalSize.height).ceil());
-    }).then((image) {
-      image
-          .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified)
-          .then((byteData) {
-        _imageForColoringByteData = byteData;
-        _paintData.imageForColoring = image;
+    rootBundle
+        .loadString(newImageForColoringName)
+        .then((rawSvg) {
+          return vg.loadPicture(SvgStringLoader(rawSvg), null);
+        })
+        .then((pictureInfo) {
+          print("Picture for coloring size = ${pictureInfo.size}");
+          return pictureInfo.picture.toImage(
+            (_screenPhysicalSize.width).ceil(),
+            (_screenPhysicalSize.height).ceil(),
+          );
+        })
+        .then((image) {
+          image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified).then((
+            byteData,
+          ) {
+            _imageForColoringByteData = byteData;
+            _paintData.imageForColoring = image;
 
-        clean();
-        repaint();
-      });
-    });
+            clean();
+            repaint();
+          });
+        });
   }
 
-  Future<dart_ui.Image> _drawToImage(Size imageSize,
-      {bool redrawCache: false}) {
+  Future<dart_ui.Image> _drawToImage(
+    Size imageSize, {
+    bool redrawCache = false,
+  }) {
     var recorder = new dart_ui.PictureRecorder();
     var canvas = Canvas(recorder);
 
@@ -156,7 +169,7 @@ class PaintWidgetState extends State<PaintWidget> {
       }
 
       if (entry != null) {
-        canvas.drawImage(entry.element.cache, Offset(0, 0), Paint());
+        canvas.drawImage(entry.element.cache!, Offset(0, 0), Paint());
         entry = entry.nextEntry(); //begining from next to cache path
       } else {
         //no cache image in history
@@ -168,7 +181,8 @@ class PaintWidgetState extends State<PaintWidget> {
       canvas.scale(_devicePixelRatio);
       while (entry != null) {
         final part = entry.element.path;
-        canvas.drawPath(
+        if (part != null)
+          canvas.drawPath(
             part.path,
             new Paint()
               ..color = part.color
@@ -176,14 +190,15 @@ class PaintWidgetState extends State<PaintWidget> {
               ..strokeWidth = part.penWidth
               ..strokeCap = StrokeCap.round
               ..strokeJoin = StrokeJoin.round
-              ..isAntiAlias = true);
+              ..isAntiAlias = true,
+          );
         entry = entry.nextEntry();
       }
       canvas.restore();
     } else if (_paintData.cacheBuffer == null) {
       canvas.drawColor(Colors.white, BlendMode.src);
     } else {
-      canvas.drawImage(_paintData.cacheBuffer, Offset(0, 0), Paint());
+      canvas.drawImage(_paintData.cacheBuffer!, Offset(0, 0), Paint());
     }
 
     canvas.save();
@@ -191,28 +206,33 @@ class PaintWidgetState extends State<PaintWidget> {
     for (var path in _paintData.pathesToDraw) {
       if (!path.completed) continue;
       canvas.drawPath(
-          path.path,
-          new Paint()
-            ..color = path.color
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = path.penWidth
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..isAntiAlias = true);
+        path.path,
+        new Paint()
+          ..color = path.color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = path.penWidth
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..isAntiAlias = true,
+      );
       path.cached = true;
     }
     canvas.restore();
 
     if (_paintData.imageForColoring != null)
-      canvas.drawImage(_paintData.imageForColoring, Offset(0, 0),
-          Paint()..blendMode = BlendMode.darken);
+      canvas.drawImage(
+        _paintData.imageForColoring!,
+        Offset(0, 0),
+        Paint()..blendMode = BlendMode.darken,
+      );
 
-    return recorder
-        .endRecording()
-        .toImage(imageSize.width.ceil(), imageSize.height.ceil());
+    return recorder.endRecording().toImage(
+      imageSize.width.ceil(),
+      imageSize.height.ceil(),
+    );
   }
 
-  void _enqueueUpdateCacheBuffer({bool forceUpdate: false}) {
+  void _enqueueUpdateCacheBuffer({bool forceUpdate = false}) {
     if (_cacheUpdateInProgress) {
       _updateCacheEnqueued = true;
       //if new update is forced, then enqueue force update
@@ -230,66 +250,66 @@ class PaintWidgetState extends State<PaintWidget> {
     });
   }
 
-  Future<void> _updateCacheBuffer({bool forceUpdate: false}) {
+  Future<void> _updateCacheBuffer({bool forceUpdate = false}) {
     if (kIsWeb)
-      return new Future
-          .value(); //There is some bug in canvas.drawImage and cache does not work properly
+      return new Future.value(); //There is some bug in canvas.drawImage and cache does not work properly
 
-    var imageFuture =
-        _drawToImage(_screenPhysicalSize, redrawCache: forceUpdate);
+    var imageFuture = _drawToImage(
+      _screenPhysicalSize,
+      redrawCache: forceUpdate,
+    );
 
-    return imageFuture.then((value) {
-      _paintData.cacheBuffer = value;
+    return imageFuture
+        .then((value) {
+          _paintData.cacheBuffer = value;
 
-      var cachedPathes =
-          _paintData.pathesToDraw.where((element) => element.cached);
-      for (var path in cachedPathes)
-        _historyToUndo.add(HistoryStep.fromPath(path));
+          var cachedPathes = _paintData.pathesToDraw.where(
+            (element) => element.cached,
+          );
+          for (var path in cachedPathes)
+            _historyToUndo.add(HistoryStep.fromPath(path));
 
-      _paintData.pathesToDraw.removeWhere((element) => element.cached);
-      repaint();
-    }).catchError((error) {
-      print("Update cache error $error");
-    });
+          _paintData.pathesToDraw.removeWhere((element) => element.cached);
+          repaint();
+        })
+        .catchError((error) {
+          print("Update cache error $error");
+        });
   }
 
-  void _fillImage(BuildContext contex, Offset mouseLogicalPosition) {
+  void _fillImage(BuildContext contex, Offset mouseLogicalPosition) async {
     if (!_fillFinished) return;
     _fillFinished = false;
     try {
       final stopwatch = Stopwatch()..start();
-      PaintFunctions.fillImage(
-              _paintData.cacheBuffer,
-              _imageForColoringByteData,
-              _screenPhysicalSize,
-              mouseLogicalPosition * _devicePixelRatio,
-              color)
-          .catchError((e) {
-        print("Fill color error catched: $e");
+      var image = await PaintFunctions.fillImage(
+        _paintData.cacheBuffer,
+        _imageForColoringByteData,
+        _screenPhysicalSize,
+        mouseLogicalPosition * _devicePixelRatio,
+        color,
+      );
+      if (identical(image, _paintData.cacheBuffer)) {
         _fillFinished = true;
-      }).then((image) {
-        if (image == null) {
-          _fillFinished = true;
-          return;
-        }
-        if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
-            _cacheHistoryLimit) {
-          //removing all items from begin untill and including first cache
-          HistoryStep item;
-          do {
-            item = _historyToUndo.removeFirst();
-          } while (item.stepType != StepType.Cache);
-        } else {
-          ++_currentCachesInUndoHistory;
-        }
-        _historyToUndo.add(HistoryStep.fromCache(image));
-        _paintData.cacheBuffer = image;
-        _fillFinished = true;
-        repaint();
-        print("Image filled for ${stopwatch.elapsed}");
-      });
+        return;
+      }
+      if (_currentCachesInUndoHistory + _currentCachesInRedoHistory ==
+          _cacheHistoryLimit) {
+        //removing all items from begin untill and including first cache
+        HistoryStep item;
+        do {
+          item = _historyToUndo.removeFirst();
+        } while (item.stepType != StepType.Cache);
+      } else {
+        ++_currentCachesInUndoHistory;
+      }
+      _historyToUndo.add(HistoryStep.fromCache(image));
+      _paintData.cacheBuffer = image;
+      _fillFinished = true;
+      repaint();
+      print("Image filled for ${stopwatch.elapsed}");
     } catch (err) {
-      print("Fill color error: $err");
+      print("Fill image error catched: $err");
       _fillFinished = true;
     }
   }
@@ -297,10 +317,11 @@ class PaintWidgetState extends State<PaintWidget> {
   void _onMouseDown(BuildContext contex, PointerDownEvent event) {
     if (paintTool == PaintTool.Pen) {
       var pathPart = new PenPath(
-          color: color,
-          penWidth: penThickness,
-          pointerId: event.pointer,
-          path: Path());
+        color: color,
+        penWidth: penThickness,
+        pointerId: event.pointer,
+        path: Path(),
+      );
       pathPart.path.moveTo(event.position.dx, event.position.dy);
       _paintData.pathesToDraw.add(pathPart);
     } else if (paintTool == PaintTool.Fill) {
@@ -315,8 +336,9 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void _onMouseMove(PointerMoveEvent event) {
     if (paintTool == PaintTool.Pen) {
-      var path = _paintData.pathesToDraw
-          .firstWhere((element) => element.pointerId == event.pointer);
+      var path = _paintData.pathesToDraw.firstWhereOrNull(
+        (element) => element.pointerId == event.pointer,
+      );
       if (path == null) return;
       path.path.lineTo(event.position.dx, event.position.dy);
       repaint();
@@ -325,8 +347,9 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void _onMouseUp(PointerUpEvent event) {
     if (paintTool == PaintTool.Pen) {
-      var path = _paintData.pathesToDraw
-          .firstWhere((element) => element.pointerId == event.pointer);
+      var path = _paintData.pathesToDraw.firstWhereOrNull(
+        (element) => element.pointerId == event.pointer,
+      );
       if (path == null) return;
       path.path.lineTo(event.position.dx, event.position.dy);
       path.completed = true;
@@ -345,25 +368,26 @@ class PaintWidgetState extends State<PaintWidget> {
     _screenPhysicalSize = _screenLogicalSize * _devicePixelRatio;
 
     return new Listener(
-        behavior: HitTestBehavior.opaque,
-        onPointerDown: (event) {
-          _onMouseDown(context, event);
-        },
-        onPointerMove: (event) {
-          _onMouseMove(event);
-        },
-        onPointerUp: (event) {
-          _onMouseUp(event);
-        },
-        child: CustomPaint(
-          painter: _CustomPainter(_paintData, _repaintNotifier),
-          size: _screenLogicalSize,
-          isComplex: true,
-        ));
+      behavior: HitTestBehavior.opaque,
+      onPointerDown: (event) {
+        _onMouseDown(context, event);
+      },
+      onPointerMove: (event) {
+        _onMouseMove(event);
+      },
+      onPointerUp: (event) {
+        _onMouseUp(event);
+      },
+      child: CustomPaint(
+        painter: _CustomPainter(_paintData, _repaintNotifier),
+        size: _screenLogicalSize,
+        isComplex: true,
+      ),
+    );
   }
 
   void repaint() {
-    _repaintNotifier.notifyListeners();
+    _repaintNotifier.repaint();
   }
 }
 
@@ -378,37 +402,43 @@ class _CustomPainter extends CustomPainter {
       canvas.drawColor(Colors.white, BlendMode.src);
     } else {
       canvas.drawImageRect(
-          _paintData.cacheBuffer,
-          Rect.fromLTRB(0, 0, _paintData.cacheBuffer.width.toDouble(),
-              _paintData.cacheBuffer.height.toDouble()),
-          Rect.fromLTRB(0, 0, size.width, size.height),
-          Paint());
+        _paintData.cacheBuffer!,
+        Rect.fromLTRB(
+          0,
+          0,
+          _paintData.cacheBuffer!.width.toDouble(),
+          _paintData.cacheBuffer!.height.toDouble(),
+        ),
+        Rect.fromLTRB(0, 0, size.width, size.height),
+        Paint(),
+      );
     }
 
     for (var path in _paintData.pathesToDraw) {
       canvas.drawPath(
-          path.path,
-          new Paint()
-            ..color = path.color
-            ..style = PaintingStyle.stroke
-            ..strokeWidth = path.penWidth
-            ..strokeCap = StrokeCap.round
-            ..strokeJoin = StrokeJoin.round
-            ..isAntiAlias = true);
+        path.path,
+        new Paint()
+          ..color = path.color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = path.penWidth
+          ..strokeCap = StrokeCap.round
+          ..strokeJoin = StrokeJoin.round
+          ..isAntiAlias = true,
+      );
     }
 
     if (_paintData.imageForColoring != null)
       canvas.drawImageRect(
-          _paintData.imageForColoring,
-          Rect.fromLTRB(0, 0, _paintData.imageForColoring.width.toDouble(),
-              _paintData.imageForColoring.height.toDouble()),
-          Rect.fromLTRB(0, 0, size.width, size.height),
-          Paint()..blendMode = BlendMode.darken);
-  }
-
-  @override
-  SemanticsBuilderCallback get semanticsBuilder {
-    return null;
+        _paintData.imageForColoring!,
+        Rect.fromLTRB(
+          0,
+          0,
+          _paintData.imageForColoring!.width.toDouble(),
+          _paintData.imageForColoring!.height.toDouble(),
+        ),
+        Rect.fromLTRB(0, 0, size.width, size.height),
+        Paint()..blendMode = BlendMode.darken,
+      );
   }
 
   @override

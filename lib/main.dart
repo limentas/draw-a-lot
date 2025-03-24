@@ -1,7 +1,7 @@
 import 'package:draw_a_lot/src/os_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:system_info/system_info.dart';
+import 'package:system_info2/system_info2.dart';
 
 import 'src/app_config.dart';
 import 'src/ui/app_widget.dart';
@@ -18,13 +18,17 @@ void main() {
     print("Operating system name   : ${SysInfo.operatingSystemName}");
     print("Operating system version: ${SysInfo.operatingSystemVersion}");
     print(
-        "Total physical memory   : ${SysInfo.getTotalPhysicalMemory() ~/ megabyte} MB");
+      "Total physical memory   : ${SysInfo.getTotalPhysicalMemory() ~/ megabyte} MB",
+    );
     print(
-        "Free physical memory    : ${SysInfo.getFreePhysicalMemory() ~/ megabyte} MB");
+      "Free physical memory    : ${SysInfo.getFreePhysicalMemory() ~/ megabyte} MB",
+    );
     print(
-        "Total virtual memory    : ${SysInfo.getTotalVirtualMemory() ~/ megabyte} MB");
+      "Total virtual memory    : ${SysInfo.getTotalVirtualMemory() ~/ megabyte} MB",
+    );
     print(
-        "Free virtual memory     : ${SysInfo.getFreeVirtualMemory() ~/ megabyte} MB");
+      "Free virtual memory     : ${SysInfo.getFreeVirtualMemory() ~/ megabyte} MB",
+    );
   } catch (e) {
     print("system_info exception: $e");
   }

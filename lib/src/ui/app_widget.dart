@@ -10,21 +10,26 @@ class AppWidget extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    SystemChrome.setEnabledSystemUIOverlays([]);
-    SystemChrome.setPreferredOrientations(
-        [DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeLeft,
+      DeviceOrientation.landscapeRight,
+    ]);
     return MaterialApp(
-        title: 'DrawA̲lot',
-        theme: ThemeData(
-            primarySwatch: Colors.blue,
-            buttonColor: Colors.grey[800],
-            buttonTheme: ButtonThemeData(height: 60)),
-        home: WillPopScope(
-            onWillPop: () {
-              print("Back button clicked");
-              _mainWidgetKey.currentState.undo();
-              return new Future(() => false);
-            },
-            child: ScaffoldWidget(_mainWidgetKey)));
+      title: 'DrawA̲lot',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        //buttonColor: Colors.grey[800],
+        buttonTheme: ButtonThemeData(height: 60),
+      ),
+      home: PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (bool didPop, dynamic result) {
+          if (didPop) return;
+          print("Back button clicked");
+          _mainWidgetKey.currentState?.undo();
+        },
+        child: ScaffoldWidget(_mainWidgetKey),
+      ),
+    );
   }
 }

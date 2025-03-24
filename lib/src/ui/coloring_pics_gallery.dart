@@ -7,35 +7,41 @@ class ColoringPicsGallery extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-        insetPadding: EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.max,
-          children: <Widget>[
-            Expanded(
-                child: Scrollbar(
-                    controller: _scrollController,
-                    isAlwaysShown: true,
-                    child: GridView.count(
-                        controller: _scrollController,
-                        crossAxisCount: 3,
-                        padding: EdgeInsets.all(20),
-                        children: listPicturesFilePathes().map<Widget>((path) {
-                          return ColoringPicPreview(
-                            path: path,
-                            onClicked: (chosedPath) {
-                              Navigator.of(context).pop(chosedPath);
-                            },
-                          );
-                        }).toList()))),
-            SizedBox(height: 20),
-            OutlineButton(
-                onPressed: () {
-                  Navigator.of(context).pop(null);
-                },
-                child: Text("Cancel", style: TextStyle(fontSize: 24))),
-            SizedBox(height: 20)
-          ],
-        ));
+      insetPadding: EdgeInsets.all(20),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: <Widget>[
+          Expanded(
+            child: Scrollbar(
+              controller: _scrollController,
+              trackVisibility: true,
+              child: GridView.count(
+                controller: _scrollController,
+                crossAxisCount: 3,
+                padding: EdgeInsets.all(20),
+                children:
+                    listPicturesFilePathes().map<Widget>((path) {
+                      return ColoringPicPreview(
+                        path: path,
+                        onClicked: (chosedPath) {
+                          Navigator.of(context).pop(chosedPath);
+                        },
+                      );
+                    }).toList(),
+              ),
+            ),
+          ),
+          SizedBox(height: 20),
+          OutlinedButton(
+            onPressed: () {
+              Navigator.of(context).pop(null);
+            },
+            child: Text("Cancel", style: TextStyle(fontSize: 24)),
+          ),
+          SizedBox(height: 20),
+        ],
+      ),
+    );
   }
 
   List<String> listPicturesFilePathes() {

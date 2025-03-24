@@ -5,10 +5,10 @@ import 'dart:math';
 class Color {
   Color();
   Color.fromColor(dart_ui.Color color)
-      : red = color.red,
-        green = color.green,
-        blue = color.blue,
-        alpha = color.alpha;
+    : red = color.red,
+      green = color.green,
+      blue = color.blue,
+      alpha = color.alpha;
 
   Color.fromRgba(this.red, this.green, this.blue, this.alpha);
   Color.fromRgbaInt(int rgba) {
@@ -18,10 +18,10 @@ class Color {
     alpha = (rgba & 0xFF000000) >> 24;
   }
 
-  int red;
-  int green;
-  int blue;
-  int alpha;
+  int red = 0;
+  int green = 0;
+  int blue = 0;
+  int alpha = 0;
 
   //https://www.compuphase.com/cmetric.htm (see "A low-cost approximation")
   double difference(Color other) {
@@ -29,9 +29,11 @@ class Color {
     final dr = red - other.red;
     final dg = green - other.green;
     final db = blue - other.blue;
-    return sqrt((((512 + rmean) * dr * dr) >> 8) +
-        4 * dg * dg +
-        (((767 - rmean) * db * db) >> 8));
+    return sqrt(
+      (((512 + rmean) * dr * dr) >> 8) +
+          4 * dg * dg +
+          (((767 - rmean) * db * db) >> 8),
+    );
   }
 
   //red is less significant byte
@@ -48,7 +50,7 @@ class Color {
   }
 
   @override
-  bool operator ==(dynamic other) {
+  bool operator ==(Object other) {
     if (identical(this, other)) return true;
     if (other.runtimeType != runtimeType) return false;
     return other is Color &&

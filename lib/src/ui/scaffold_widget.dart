@@ -7,41 +7,46 @@ import 'coloring_pics_gallery.dart';
 
 class ScaffoldWidget extends StatelessWidget {
   ScaffoldWidget(GlobalKey<MainViewState> mainWidgetKey)
-      : _mainWidgetKey = mainWidgetKey;
+    : _mainWidgetKey = mainWidgetKey;
 
   final GlobalKey<MainViewState> _mainWidgetKey;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-        extendBodyBehindAppBar: false,
-        resizeToAvoidBottomInset: false,
-        //drawerEdgeDragWidth: 0,
-        body: MainView(key: _mainWidgetKey, title: 'DrawA̲lot'),
-        drawerEnableOpenDragGesture: false,
-        drawer: kIsWeb
-            ? null
-            : createDrawer(context,
-                onSaveToGallery: () =>
-                    _mainWidgetKey.currentState.saveToGallery(),
+      extendBodyBehindAppBar: false,
+      resizeToAvoidBottomInset: false,
+      //drawerEdgeDragWidth: 0,
+      body: MainView(key: _mainWidgetKey),
+      drawerEnableOpenDragGesture: false,
+      drawer:
+          kIsWeb
+              ? null
+              : createDrawer(
+                context,
+                onSaveToGallery:
+                    () => _mainWidgetKey.currentState?.saveToGallery(),
                 onBlankCanvasChoosen: () {
-                  _mainWidgetKey.currentState.paintWidgetKey.currentState
-                      .setImageForColoring(null);
+                  _mainWidgetKey.currentState?.paintWidgetKey.currentState
+                      ?.setImageForColoring("");
                 },
                 onColoringPicChoosen: () {
                   showGeneralDialog<String>(
-                      context: context,
-                      barrierDismissible: true,
-                      barrierLabel: "",
-                      transitionDuration: Duration(milliseconds: 100),
-                      pageBuilder: (context, animation, secondaryAnimation) {
-                        return ColoringPicsGallery();
-                      }).then((path) {
+                    context: context,
+                    barrierDismissible: true,
+                    barrierLabel: "",
+                    transitionDuration: Duration(milliseconds: 100),
+                    pageBuilder: (context, animation, secondaryAnimation) {
+                      return ColoringPicsGallery();
+                    },
+                  ).then((path) {
                     if (path != null) {
-                      _mainWidgetKey.currentState.paintWidgetKey.currentState
-                          .setImageForColoring(path);
+                      _mainWidgetKey.currentState?.paintWidgetKey.currentState
+                          ?.setImageForColoring(path);
                     }
                   });
-                }));
+                },
+              ),
+    );
   }
 }

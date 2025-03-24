@@ -9,55 +9,77 @@ import 'package:bitmap/bitmap.dart';
 import 'color.dart';
 
 class PaintFunctions {
-  static Uint32List _visitedPixels;
+  static Uint32List _visitedPixels = Uint32List(0);
   static int _curUsedValueForVisited = 0;
 
   static final _maxUsedValueForVisited = pow(2, 31);
 
-  static Future<dart_ui.Image> fillImage(
-      dart_ui.Image image,
-      ByteData constraintImageData,
-      dart_ui.Size constraintImageSize,
-      dart_ui.Offset physicalPoint,
-      dart_ui.Color color) async {
-    Uint32List constraintBuffer;
+  // Make "fill" operation and returns result image.
+  // If there is nothing to do, then this method returns the same `image` object
+  static Future<dart_ui.Image?> fillImage(
+    dart_ui.Image? image,
+    ByteData? constraintImageData,
+    dart_ui.Size constraintImageSize,
+    dart_ui.Offset physicalPoint,
+    dart_ui.Color color,
+  ) async {
+    Uint32List? constraintBuffer = null;
     if (constraintImageData != null) {
       //checking for constraint hit
       constraintBuffer = constraintImageData.buffer.asUint32List();
-      final colorFromConstraint = Color.fromRgbaInt(constraintBuffer[
-          physicalPoint.dx.toInt() +
-              physicalPoint.dy.toInt() * constraintImageSize.width.ceil()]);
+      final colorFromConstraint = Color.fromRgbaInt(
+        constraintBuffer[physicalPoint.dx.toInt() +
+            physicalPoint.dy.toInt() * constraintImageSize.width.ceil()],
+      );
 
       //print("colorFromConstraint " + colorFromConstraint.toString());
       //final colorBlack = Color.fromColor(Colors.black);
       //print("color diff " +
       //    colorFromConstraint.difference(colorBlack).toString());
       if (checkConstraintApprox(colorFromConstraint)) {
-        physicalPoint = correctPhysicalPoint(
-            constraintImageData, constraintImageSize, physicalPoint);
-        if (physicalPoint == null) {
+        var correctedPhysicalPoint = correctPhysicalPoint(
+          constraintImageData,
+          constraintImageSize,
+          physicalPoint,
+        );
+        if (correctedPhysicalPoint == null) {
           print("Couldn't correct physicall point");
-          return null;
+          throw new Exception("Couldn't correct physicall point");
         }
       }
     }
 
-    Future<dart_ui.Image> result;
+    Future<dart_ui.Image>? result;
     if (image == null) {
       //no cache value
       result = _perfomFill(
-          null, constraintBuffer, constraintImageSize, physicalPoint, color);
+        null,
+        constraintBuffer,
+        constraintImageSize,
+        physicalPoint,
+        color,
+      );
     } else {
-      final byteData =
-          await image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
-      result = _perfomFill(byteData, constraintBuffer, constraintImageSize,
-          physicalPoint, color);
+      final byteData = await image.toByteData(
+        format: dart_ui.ImageByteFormat.rawUnmodified,
+      );
+      result = _perfomFill(
+        byteData,
+        constraintBuffer,
+        constraintImageSize,
+        physicalPoint,
+        color,
+      );
     }
+    if (result == null) return image;
     return result;
   }
 
-  static dart_ui.Offset correctPhysicalPoint(ByteData constraintImageData,
-      dart_ui.Size constraintImageSize, dart_ui.Offset physicalPoint) {
+  static dart_ui.Offset? correctPhysicalPoint(
+    ByteData constraintImageData,
+    dart_ui.Size constraintImageSize,
+    dart_ui.Offset physicalPoint,
+  ) {
     final constraintBuffer = constraintImageData.buffer.asUint32List();
     final width = constraintImageSize.width.ceil();
     final height = constraintImageSize.height.ceil();
@@ -65,10 +87,12 @@ class PaintFunctions {
       if (offset.dx < 0 ||
           offset.dx >= width ||
           offset.dy < 0 ||
-          offset.dy >= height) return false;
-      final colorFromConstraint = Color.fromRgbaInt(constraintBuffer[
-          offset.dx.toInt() +
-              offset.dy.toInt() * constraintImageSize.width.ceil()]);
+          offset.dy >= height)
+        return false;
+      final colorFromConstraint = Color.fromRgbaInt(
+        constraintBuffer[offset.dx.toInt() +
+            offset.dy.toInt() * constraintImageSize.width.ceil()],
+      );
       return !checkConstraintApprox(colorFromConstraint);
     };
     for (int radiusDist = 1; radiusDist < width; ++radiusDist) {
@@ -105,12 +129,14 @@ class PaintFunctions {
     return null;
   }
 
-  static Future<dart_ui.Image> _perfomFill(
-      ByteData imageData,
-      Uint32List constraintBuffer,
-      dart_ui.Size constraintImageSize,
-      dart_ui.Offset physicalPoint,
-      dart_ui.Color color) {
+  // Return null if there is nothing to do
+  static Future<dart_ui.Image>? _perfomFill(
+    ByteData? imageData,
+    Uint32List? constraintBuffer,
+    dart_ui.Size constraintImageSize,
+    dart_ui.Offset physicalPoint,
+    dart_ui.Color color,
+  ) {
     final mouseX = physicalPoint.dx.toInt();
     final mouseY = physicalPoint.dy.toInt();
     final width = constraintImageSize.width.ceil();
@@ -118,7 +144,13 @@ class PaintFunctions {
 
     Uint8List imageBufferUint8;
     Uint32List imageBufferUint32;
+
+    final colorReplaceTo = Color.fromColor(color);
+    final colorReplaceToRgba = colorReplaceTo.toRgbaInt();
+
     if (imageData == null) {
+      if (colorReplaceToRgba == 0) return null;
+
       var byteData = ByteData(width * height * 4);
       imageBufferUint8 = byteData.buffer.asUint8List();
       imageBufferUint32 = byteData.buffer.asUint32List();
@@ -127,11 +159,11 @@ class PaintFunctions {
       imageBufferUint32 = imageData.buffer.asUint32List();
     }
 
-    final colorToReplace =
-        Color.fromRgbaInt(imageBufferUint32[mouseX + mouseY * width]);
+    final colorToReplace = Color.fromRgbaInt(
+      imageBufferUint32[mouseX + mouseY * width],
+    );
+
     final colorToReplaceRgba = colorToReplace.toRgbaInt();
-    final colorReplaceTo = Color.fromColor(color);
-    final colorReplaceToRgba = colorReplaceTo.toRgbaInt();
     if (colorToReplaceRgba == colorReplaceToRgba) return null;
 
     imageBufferUint32[mouseX + mouseY * width] = colorReplaceToRgba;
@@ -140,8 +172,7 @@ class PaintFunctions {
     final queue = ListQueue(capacity);
     queue.addLast([mouseX, mouseY]);
 
-    if (_visitedPixels == null ||
-        _visitedPixels.length != width * height ||
+    if (_visitedPixels.length != width * height ||
         _curUsedValueForVisited > _maxUsedValueForVisited) {
       print("Recreate _visitedPixels array");
       _visitedPixels = Uint32List(width * height);
@@ -158,8 +189,9 @@ class PaintFunctions {
       if (_visitedPixels[uint32PixelIndex] == _curUsedValueForVisited) return;
 
       if (constraintBuffer != null) {
-        final colorFromConstraint =
-            Color.fromRgbaInt(constraintBuffer[uint32PixelIndex]);
+        final colorFromConstraint = Color.fromRgbaInt(
+          constraintBuffer[uint32PixelIndex],
+        );
 
         if (checkConstraintExact(colorFromConstraint)) {
           _visitedPixels[uint32PixelIndex] = _curUsedValueForVisited;

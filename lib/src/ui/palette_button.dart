@@ -1,17 +1,16 @@
 import 'package:flutter/material.dart';
 
 import 'palette_pick_color_dialog.dart';
-import 'package:draw_a_lot/src/app_config.dart';
 
 class PaletteButton extends StatefulWidget {
-  PaletteButton(
-      {@required Color myColor,
-      @required Color selectedColor,
-      List<Color> colorsToChoiseFrom,
-      @required double buttonSize,
-      Key key,
-      void Function(Color) onPressed})
-      : _myColor = myColor,
+  PaletteButton({
+    required Color myColor,
+    required Color selectedColor,
+    required List<Color> colorsToChoiseFrom,
+    required double buttonSize,
+    Key? key,
+    required void Function(Color) onPressed,
+  })  : _myColor = myColor,
         _selectedColor = selectedColor,
         _colorsToChoiseFrom = colorsToChoiseFrom,
         _onPressed = onPressed,
@@ -48,55 +47,55 @@ class PaletteButtonState extends State<PaletteButton> {
 
   Color selectedColor; //color selected from whole palette
   Color currentColor; //color of this button
-  bool selected;
+  late bool selected;
 
   @override
   Widget build(BuildContext context) {
-    //final buttonSize = max(30.0, MediaQuery.of(context).size.height / 9 - 10);
-    final height = selected ? widget._buttonSize * 0.7 : widget._buttonSize;
+    final buttonSize = selected ? widget._buttonSize * 0.7 : widget._buttonSize;
     return Padding(
-        padding: EdgeInsets.all(1),
-        child: ButtonTheme(
-            height: height,
-            //  minWidth: buttonSize,
-            child: RaisedButton(
-              color: currentColor,
-              shape: CircleBorder(),
-              materialTapTargetSize: widget._buttonSize < 48
-                  ? MaterialTapTargetSize.shrinkWrap
-                  : MaterialTapTargetSize.padded,
-              elevation:
-                  selected ? _toggledButtonElevation : _defaultButtonElevation,
-              focusElevation:
-                  selected ? _toggledButtonElevation : _defaultButtonElevation,
-              hoverElevation:
-                  selected ? _toggledButtonElevation : _defaultButtonElevation,
-              highlightElevation: _toggledButtonElevation,
-              onPressed: () {
-                widget._onPressed(currentColor);
-              },
-              onLongPress: () {
-                if (widget._colorsToChoiseFrom == null ||
-                    widget._colorsToChoiseFrom.isEmpty) return;
+      padding: EdgeInsets.all(1),
+      child: ElevatedButton(
+        style: ElevatedButton.styleFrom(
+          fixedSize: Size.square(buttonSize),
+          backgroundColor: currentColor,
+          shape: CircleBorder(),
+          tapTargetSize: widget._buttonSize < 48
+              ? MaterialTapTargetSize.shrinkWrap
+              : MaterialTapTargetSize.padded,
+        ).copyWith(
+          elevation:
+              WidgetStateProperty.fromMap(<WidgetStatesConstraint, double>{
+            WidgetState.any: _defaultButtonElevation,
+            WidgetState.pressed | WidgetState.selected: _toggledButtonElevation,
+          }),
+        ),
+        child: null,
+        onPressed: () {
+          widget._onPressed(currentColor);
+        },
+        onLongPress: () {
+          if (widget._colorsToChoiseFrom.isEmpty) return;
 
-                widget._onPressed(currentColor);
+          widget._onPressed(currentColor);
 
-                RenderBox box = context.findRenderObject();
-                var colorFuture = showColorPickDialog(
-                    context,
-                    box.localToGlobal(Offset.zero).dy -
-                        (widget._buttonSize - height) / 2,
-                    widget._buttonSize,
-                    currentColor,
-                    widget._colorsToChoiseFrom);
-                colorFuture.then((color) {
-                  if (color != null)
-                    setState(() {
-                      currentColor = color;
-                    });
-                  widget._onPressed(currentColor);
-                });
-              },
-            )));
+          RenderBox box = context.findRenderObject() as RenderBox;
+          var colorFuture = showColorPickDialog(
+            context,
+            box.localToGlobal(Offset.zero).dy -
+                (widget._buttonSize - buttonSize) / 2,
+            widget._buttonSize,
+            currentColor,
+            widget._colorsToChoiseFrom,
+          );
+          colorFuture.then((color) {
+            if (color != null)
+              setState(() {
+                currentColor = color;
+              });
+            widget._onPressed(currentColor);
+          });
+        },
+      ),
+    );
   }
 }

@@ -5,29 +5,30 @@ import 'package:draw_a_lot/src/system_info.dart';
 import 'package:flutter/services.dart';
 
 class OsFunctions {
-  static MethodChannel _platform;
-
-  static Future _callHandler(MethodCall call) {
-    switch (call.method) {
-    }
-    return null;
-  }
+  static MethodChannel? _platform = null;
 
   static Future<bool> saveToGallery(Future<Image> imageFuture) async {
-    final imageBytes = await imageFuture
-        .then((image) => image.toByteData(format: ImageByteFormat.png));
+    final imageBytes = await imageFuture.then(
+      (image) => image.toByteData(format: ImageByteFormat.png),
+    );
+
+    if (imageBytes == null) {
+      throw Exception("Couldn't convert image to png");
+    }
 
     _ensureInit();
 
-    return _platform.invokeMethod('saveImageToGallery',
-        {'imagePngData': imageBytes.buffer.asUint8List()});
+    return _platform!.invokeMethod('saveImageToGallery', {
+          'imagePngData': imageBytes.buffer.asUint8List(),
+        })
+        as bool;
   }
 
   static Future<SystemInfo> getSystemInfo() async {
     _ensureInit();
 
     final result = new SystemInfo();
-    final resultMap = await _platform.invokeMethod('getSystemInfo');
+    final resultMap = await _platform!.invokeMethod('getSystemInfo');
     result.supportedABIs = resultMap['SUPPORTED_ABIS'] as String;
     final abis = result.supportedABIs.split(',');
     //If the most preferred ABI is x86 then flag this
@@ -50,7 +51,6 @@ class OsFunctions {
   static void _ensureInit() {
     if (_platform == null) {
       _platform = MethodChannel('slebe.dev/draw-a-lot');
-      _platform.setMethodCallHandler(_callHandler);
     }
   }
 }

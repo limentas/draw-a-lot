@@ -1,7 +1,12 @@
 import 'package:flutter/painting.dart';
 
 class PenPath {
-  PenPath({this.color, this.penWidth, this.pointerId, this.path});
+  PenPath({
+    required this.color,
+    required this.penWidth,
+    required this.pointerId,
+    required this.path,
+  });
 
   Color color;
   double penWidth;

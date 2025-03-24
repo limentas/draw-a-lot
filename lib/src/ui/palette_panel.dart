@@ -51,53 +51,55 @@ class PalettePanel extends StatelessWidget {
     _blackColorButtonKey.currentState?.updateSelectedColor(newColor);
   }
 
-  List<Color> listAllMaterialColors(MaterialColor color,
-      {MaterialAccentColor accent}) {
+  List<Color> listAllMaterialColors(
+    MaterialColor color, {
+    MaterialAccentColor? accent,
+  }) {
     if (accent == null)
       return [
-        color[50],
-        color[100],
-        color[200],
-        color[300],
-        color[400],
-        color[500],
-        color[600],
-        color[700],
-        color[800],
-        color[900]
+        color.shade50,
+        color.shade100,
+        color.shade200,
+        color.shade300,
+        color.shade400,
+        color.shade500,
+        color.shade600,
+        color.shade700,
+        color.shade800,
+        color.shade900,
       ];
     else
       return [
-        accent[100],
-        accent[200],
-        accent[400],
-        accent[700],
-        color[50],
-        color[100],
-        color[200],
-        color[300],
-        color[400],
-        color[500],
-        color[600],
-        color[700],
-        color[800],
-        color[900]
+        accent.shade100,
+        accent.shade200,
+        accent.shade400,
+        accent.shade700,
+        color.shade50,
+        color.shade100,
+        color.shade200,
+        color.shade300,
+        color.shade400,
+        color.shade500,
+        color.shade600,
+        color.shade700,
+        color.shade800,
+        color.shade900,
       ];
   }
 
   List<Color> listGreyscale() {
     return [
-      Colors.grey[50],
-      Colors.grey[100],
-      Colors.grey[200],
-      Colors.grey[300],
-      Colors.grey[400],
-      Colors.grey[500],
-      Colors.grey[600],
-      Colors.grey[700],
-      Colors.grey[800],
-      Colors.grey[850],
-      Colors.grey[900],
+      Colors.grey.shade50,
+      Colors.grey.shade100,
+      Colors.grey.shade200,
+      Colors.grey.shade300,
+      Colors.grey.shade400,
+      Colors.grey.shade500,
+      Colors.grey.shade600,
+      Colors.grey.shade700,
+      Colors.grey.shade800,
+      Colors.grey[850]!,
+      Colors.grey.shade900,
       Colors.black,
     ];
   }
@@ -105,216 +107,255 @@ class PalettePanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     var buttonSize = max(
-        48.0,
-        min(MediaQuery.of(context).size.height / 9 - 10,
-            (MediaQuery.of(context).size.width - 90) / 14 - 2));
+      48.0,
+      min(
+        MediaQuery.of(context).size.height / 9 - 10,
+        (MediaQuery.of(context).size.width - 90) / 14 - 2,
+      ),
+    );
     //return Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
     return SizedBox(
-        width: buttonSize,
-        child: Stack(children: [
-          ListView(children: <Widget>[
-            SizedBox(height: buttonSize / 2),
-            PaletteButton(
-              myColor: Colors.white,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: null,
-              key: _whiteColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.red,
-              selectedColor: _startColor,
-              colorsToChoiseFrom:
-                  listAllMaterialColors(Colors.red, accent: Colors.redAccent),
-              key: _redColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.deepOrange,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.deepOrange,
-                  accent: Colors.deepOrangeAccent),
-              key: _deepOrangeColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.orange,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.orange,
-                  accent: Colors.orangeAccent),
-              key: _orangeColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.yellow,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.yellow,
-                  accent: Colors.yellowAccent),
-              key: _yellowColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.lime,
-              selectedColor: _startColor,
-              colorsToChoiseFrom:
-                  listAllMaterialColors(Colors.lime, accent: Colors.limeAccent),
-              key: _limeColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.lightGreen,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.lightGreen,
-                  accent: Colors.lightGreenAccent),
-              key: _lightGreenColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.green,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.green,
-                  accent: Colors.greenAccent),
-              key: _greenColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.teal,
-              selectedColor: _startColor,
-              colorsToChoiseFrom:
-                  listAllMaterialColors(Colors.teal, accent: Colors.tealAccent),
-              key: _tealColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.cyan,
-              selectedColor: _startColor,
-              colorsToChoiseFrom:
-                  listAllMaterialColors(Colors.cyan, accent: Colors.cyanAccent),
-              key: _cyanColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.lightBlue,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.lightBlue,
-                  accent: Colors.lightBlueAccent),
-              key: _lightBlueColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.indigo,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.indigo,
-                  accent: Colors.indigoAccent),
-              key: _indigoColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.deepPurple,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.deepPurple,
-                  accent: Colors.deepPurpleAccent),
-              key: _deepPurpleColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.purple[800],
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.purple,
-                  accent: Colors.purpleAccent),
-              key: _purpleColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.pink,
-              selectedColor: _startColor,
-              colorsToChoiseFrom:
-                  listAllMaterialColors(Colors.pink, accent: Colors.pinkAccent),
-              key: _pinkColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.brown,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listAllMaterialColors(Colors.brown),
-              key: _brownColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            PaletteButton(
-              myColor: Colors.black,
-              selectedColor: _startColor,
-              colorsToChoiseFrom: listGreyscale(),
-              key: _blackColorButtonKey,
-              buttonSize: buttonSize,
-              onPressed: (color) {
-                _updateSelectedColor(color);
-              },
-            ),
-            SizedBox(height: buttonSize / 2),
-          ]),
+      width: buttonSize,
+      child: Stack(
+        children: [
+          ListView(
+            children: <Widget>[
+              SizedBox(height: buttonSize / 2),
+              PaletteButton(
+                myColor: Colors.white,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: [],
+                key: _whiteColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.red,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.red,
+                  accent: Colors.redAccent,
+                ),
+                key: _redColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.deepOrange,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.deepOrange,
+                  accent: Colors.deepOrangeAccent,
+                ),
+                key: _deepOrangeColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.orange,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.orange,
+                  accent: Colors.orangeAccent,
+                ),
+                key: _orangeColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.yellow,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.yellow,
+                  accent: Colors.yellowAccent,
+                ),
+                key: _yellowColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.lime,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.lime,
+                  accent: Colors.limeAccent,
+                ),
+                key: _limeColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.lightGreen,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.lightGreen,
+                  accent: Colors.lightGreenAccent,
+                ),
+                key: _lightGreenColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.green,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.green,
+                  accent: Colors.greenAccent,
+                ),
+                key: _greenColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.teal,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.teal,
+                  accent: Colors.tealAccent,
+                ),
+                key: _tealColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.cyan,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.cyan,
+                  accent: Colors.cyanAccent,
+                ),
+                key: _cyanColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.lightBlue,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.lightBlue,
+                  accent: Colors.lightBlueAccent,
+                ),
+                key: _lightBlueColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.indigo,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.indigo,
+                  accent: Colors.indigoAccent,
+                ),
+                key: _indigoColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.deepPurple,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.deepPurple,
+                  accent: Colors.deepPurpleAccent,
+                ),
+                key: _deepPurpleColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.purple.shade800,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.purple,
+                  accent: Colors.purpleAccent,
+                ),
+                key: _purpleColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.pink,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(
+                  Colors.pink,
+                  accent: Colors.pinkAccent,
+                ),
+                key: _pinkColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.brown,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listAllMaterialColors(Colors.brown),
+                key: _brownColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              PaletteButton(
+                myColor: Colors.black,
+                selectedColor: _startColor,
+                colorsToChoiseFrom: listGreyscale(),
+                key: _blackColorButtonKey,
+                buttonSize: buttonSize,
+                onPressed: (color) {
+                  _updateSelectedColor(color);
+                },
+              ),
+              SizedBox(height: buttonSize / 2),
+            ],
+          ),
           Align(
-              alignment: Alignment.topCenter,
-              child: Container(
-                  height: 20,
-                  width: 500,
-                  color: Colors.white54,
-                  child: SvgPicture.asset("icons/keyboard_arrow_up-24px.svg"))),
+            alignment: Alignment.topCenter,
+            child: Container(
+              height: 20,
+              width: 500,
+              color: Colors.white54,
+              child: SvgPicture.asset("icons/keyboard_arrow_up-24px.svg"),
+            ),
+          ),
           Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                  height: 20,
-                  width: 500,
-                  color: Colors.white54,
-                  child:
-                      SvgPicture.asset("icons/keyboard_arrow_down-24px.svg"))),
-        ]));
+            alignment: Alignment.bottomCenter,
+            child: Container(
+              height: 20,
+              width: 500,
+              color: Colors.white54,
+              child: SvgPicture.asset("icons/keyboard_arrow_down-24px.svg"),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
