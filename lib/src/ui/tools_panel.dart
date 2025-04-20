@@ -49,7 +49,7 @@ class ToolsPanel extends StatelessWidget {
         ToolButton(
           key: _thicknessButtonKey,
           color: Colors.black,
-          imageIcon: AssetImage('icons/brush_thickness.png'),
+          svgAssetName: 'icons/brush_thickness.svg',
           startToggled: _startTool == PaintTool.Pen,
           onPressed: () {
             _updateTool(PaintTool.Pen);

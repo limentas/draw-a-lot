@@ -1,11 +1,12 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class ToolButton extends StatefulWidget {
   ToolButton({
     Key? key,
-    this.imageIcon,
+    this.svgAssetName,
     this.iconData,
     required this.color,
     required this.onPressed,
@@ -14,7 +15,7 @@ class ToolButton extends StatefulWidget {
   }) : super(key: key);
 
   final void Function() onPressed;
-  final ImageProvider<Object>? imageIcon;
+  final String? svgAssetName;
   final IconData? iconData;
   final Color color;
   final bool disabled;
@@ -63,12 +64,10 @@ class ToolButtonState extends State<ToolButton> {
           WidgetState.pressed | WidgetState.selected: _toggledButtonElevation,
         }),
       ),
-      child: widget.imageIcon != null
-          ? ImageIcon(
-              widget.imageIcon,
-              size: buttonSize * 0.55,
-              color: widget.color,
-            )
+      child: widget.svgAssetName != null
+          ? SvgPicture.asset(widget.svgAssetName!,
+              width: buttonSize * 0.55,
+              colorFilter: ColorFilter.mode(widget.color, BlendMode.srcIn))
           : Icon(
               widget.iconData,
               size: buttonSize * 0.6,
