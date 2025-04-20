@@ -15,9 +15,7 @@ import 'package:draw_a_lot/src/paint_data.dart';
 
 class PaintWidget extends StatefulWidget {
   PaintWidget(this.color, this._paintTool, this._penThickness, {key})
-    : super(key: key) {
-    print("create paint widget");
-  }
+      : super(key: key) {}
 
   final dart_ui.Color color;
   final PaintTool _paintTool;
@@ -113,7 +111,7 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   Future<dart_ui.Image> saveToImage() {
-    //return Future.value(_paintData.imageForColoring);
+    //return Future.value(_paintData.imageForColoring!);
     return _drawToImage(_screenPhysicalSize);
   }
 
@@ -130,29 +128,25 @@ class PaintWidgetState extends State<PaintWidget> {
     if (newImageForColoringName == _loadedImageForColoringName) return;
     _loadedImageForColoringName = newImageForColoringName;
 
-    rootBundle
-        .loadString(newImageForColoringName)
-        .then((rawSvg) {
-          return vg.loadPicture(SvgStringLoader(rawSvg), null);
-        })
-        .then((pictureInfo) {
-          print("Picture for coloring size = ${pictureInfo.size}");
-          return pictureInfo.picture.toImage(
-            (_screenPhysicalSize.width).ceil(),
-            (_screenPhysicalSize.height).ceil(),
-          );
-        })
-        .then((image) {
-          image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified).then((
-            byteData,
-          ) {
-            _imageForColoringByteData = byteData;
-            _paintData.imageForColoring = image;
+    rootBundle.loadString(newImageForColoringName).then((rawSvg) {
+      return vg.loadPicture(SvgStringLoader(rawSvg), null);
+    }).then((pictureInfo) {
+      print("Picture for coloring size = ${pictureInfo.size}");
+      return pictureInfo.picture.toImage(
+        (_screenPhysicalSize.width).ceil(),
+        (_screenPhysicalSize.height).ceil(),
+      );
+    }).then((image) {
+      image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified).then((
+        byteData,
+      ) {
+        _imageForColoringByteData = byteData;
+        _paintData.imageForColoring = image;
 
-            clean();
-            repaint();
-          });
-        });
+        clean();
+        repaint();
+      });
+    });
   }
 
   Future<dart_ui.Image> _drawToImage(
@@ -227,9 +221,9 @@ class PaintWidgetState extends State<PaintWidget> {
       );
 
     return recorder.endRecording().toImage(
-      imageSize.width.ceil(),
-      imageSize.height.ceil(),
-    );
+          imageSize.width.ceil(),
+          imageSize.height.ceil(),
+        );
   }
 
   void _enqueueUpdateCacheBuffer({bool forceUpdate = false}) {
@@ -252,29 +246,28 @@ class PaintWidgetState extends State<PaintWidget> {
 
   Future<void> _updateCacheBuffer({bool forceUpdate = false}) {
     if (kIsWeb)
-      return new Future.value(); //There is some bug in canvas.drawImage and cache does not work properly
+      return new Future
+          .value(); //There is some bug in canvas.drawImage and cache does not work properly
 
     var imageFuture = _drawToImage(
       _screenPhysicalSize,
       redrawCache: forceUpdate,
     );
 
-    return imageFuture
-        .then((value) {
-          _paintData.cacheBuffer = value;
+    return imageFuture.then((value) {
+      _paintData.cacheBuffer = value;
 
-          var cachedPathes = _paintData.pathesToDraw.where(
-            (element) => element.cached,
-          );
-          for (var path in cachedPathes)
-            _historyToUndo.add(HistoryStep.fromPath(path));
+      var cachedPathes = _paintData.pathesToDraw.where(
+        (element) => element.cached,
+      );
+      for (var path in cachedPathes)
+        _historyToUndo.add(HistoryStep.fromPath(path));
 
-          _paintData.pathesToDraw.removeWhere((element) => element.cached);
-          repaint();
-        })
-        .catchError((error) {
-          print("Update cache error $error");
-        });
+      _paintData.pathesToDraw.removeWhere((element) => element.cached);
+      repaint();
+    }).catchError((error) {
+      print("Update cache error $error");
+    });
   }
 
   void _fillImage(BuildContext contex, Offset mouseLogicalPosition) async {

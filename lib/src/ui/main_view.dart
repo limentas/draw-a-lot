@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:draw_a_lot/src/ui/tools_panel.dart';
@@ -20,7 +19,7 @@ class MainViewState extends State<MainView>
     with SingleTickerProviderStateMixin {
   final _paintWidgetKey = GlobalKey<PaintWidgetState>();
 
-  final _startPaintTool = PaintTool.Pen;
+  var _paintTool = PaintTool.Pen;
   final _startThickness = 20.0;
 
   Color _selectedColor = Colors.lightBlue;
@@ -41,24 +40,22 @@ class MainViewState extends State<MainView>
     final imageFuture = paintWidgetKey.currentState?.saveToImage();
     if (imageFuture == null) return;
 
-    OsFunctions.saveToGallery(imageFuture)
-        .catchError((error) {
-          print("An error occurred while saving the image: $error");
-          _showSnackBar(
-            context,
-            "An error occurred while saving the image: $error",
-          );
-          return false;
-        })
-        .then((result) {
-          if (result) {
-            print("Saved successfully");
-            _showSnackBar(context, "Image saved successfully to the gallery");
-          } else {
-            print("An error occurred while saving the image");
-            _showSnackBar(context, "An error occurred while saving the image");
-          }
-        });
+    OsFunctions.saveToGallery(imageFuture).catchError((error) {
+      print("An error occurred while saving the image: $error");
+      _showSnackBar(
+        context,
+        "An error occurred while saving the image: $error",
+      );
+      return false;
+    }).then((result) {
+      if (result) {
+        print("Saved successfully");
+        _showSnackBar(context, "Image saved successfully to the gallery");
+      } else {
+        print("An error occurred while saving the image");
+        _showSnackBar(context, "An error occurred while saving the image");
+      }
+    });
   }
 
   Future<void> _updateThickness(Future<double?> val) async {
@@ -70,6 +67,7 @@ class MainViewState extends State<MainView>
   }
 
   void _updateTool(PaintTool tool) {
+    _paintTool = tool;
     paintWidgetKey.currentState?.paintTool = tool;
   }
 
@@ -116,15 +114,15 @@ class MainViewState extends State<MainView>
   Widget build(BuildContext context) {
     var query = MediaQuery.of(context);
     print(
-      "Screen size: ${query.size}, ratio: ${query.devicePixelRatio}, text scale factor: ${query.textScaleFactor}",
+      "Screen size              : ${query.size}, ratio: ${query.devicePixelRatio}, text scale factor: ${query.textScaler.toString()}",
     );
-    print("ratio: ${WidgetsBinding.instance.window.devicePixelRatio}");
+    print("ratio                    : ${View.of(context).devicePixelRatio}");
 
     return new Stack(
       children: <Widget>[
         PaintWidget(
           _selectedColor,
-          _startPaintTool,
+          _paintTool,
           _startThickness,
           key: paintWidgetKey,
         ),
@@ -169,7 +167,7 @@ class MainViewState extends State<MainView>
             child: Padding(
               padding: EdgeInsets.only(left: 5),
               child: ToolsPanel(
-                _startPaintTool,
+                _paintTool,
                 _startThickness,
                 onPaintToolChanged: (tool) {
                   print("Paint tool changed: $tool");
