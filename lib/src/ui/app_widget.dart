@@ -14,6 +14,8 @@ class AppWidget extends StatelessWidget {
       DeviceOrientation.landscapeLeft,
       DeviceOrientation.landscapeRight,
     ]);
+    // Hide status and bottom bars
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersive);
     return MaterialApp(
       title: 'DrawA̲lot',
       theme: ThemeData(

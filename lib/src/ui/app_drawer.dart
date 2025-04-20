@@ -1,6 +1,7 @@
 import 'package:draw_a_lot/src/app_config.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:url_launcher/url_launcher.dart';
 
@@ -12,6 +13,7 @@ Drawer createDrawer(
 }) {
   return Drawer(
     semanticLabel: "Menu",
+    width: 350,
     child: Column(
       children: <Widget>[
         Expanded(
@@ -22,6 +24,7 @@ Drawer createDrawer(
                 height: 80,
                 child: DrawerHeader(
                   decoration: BoxDecoration(color: Colors.blue),
+                  padding: const EdgeInsets.only(left: 16),
                   child: Text(
                     'DrawA̲lot',
                     style: TextStyle(color: Colors.white, fontSize: 24),
@@ -29,8 +32,12 @@ Drawer createDrawer(
                 ),
               ),
               ListTile(
-                leading: Icon(Icons.brush),
-                title: Text('New blank canvas', style: TextStyle(fontSize: 18)),
+                leading: SvgPicture.asset('icons/pencil.svg',
+                    colorFilter:
+                        ColorFilter.mode(Colors.blue.shade900, BlendMode.srcIn),
+                    width: 36),
+                title: Text('New blank canvas', style: TextStyle(fontSize: 25)),
+                minVerticalPadding: 20,
                 onTap: () {
                   Navigator.pop(context);
                   onBlankCanvasChoosen();
@@ -39,23 +46,29 @@ Drawer createDrawer(
               AppConfig.isX86_32
                   ? ListTile() //disable coloring mode
                   : ListTile(
-                    leading: Icon(Icons.image),
-                    title: Text(
-                      'Coloring mode',
-                      style: TextStyle(fontSize: 18),
+                      leading: SvgPicture.asset('icons/flower.svg',
+                          colorFilter: ColorFilter.mode(
+                              Colors.green.shade800, BlendMode.srcIn),
+                          width: 36),
+                      title: Text(
+                        'Coloring mode',
+                        style: TextStyle(fontSize: 25),
+                      ),
+                      minVerticalPadding: 20,
+                      onTap: () {
+                        Navigator.pop(context);
+                        onColoringPicChoosen();
+                      },
                     ),
-                    onTap: () {
-                      Navigator.pop(context);
-                      onColoringPicChoosen();
-                    },
-                  ),
               ListTile(), //spacer
               ListTile(
-                leading: Icon(Icons.save),
+                leading:
+                    Icon(Icons.favorite_outline, color: Colors.red, size: 36),
                 title: Text(
                   'Save to the gallery',
-                  style: TextStyle(fontSize: 18),
+                  style: TextStyle(fontSize: 25),
                 ),
+                minVerticalPadding: 20,
                 onTap: () {
                   Navigator.pop(context);
                   onSaveToGallery();
@@ -73,20 +86,19 @@ Drawer createDrawer(
                   color: Colors.blueAccent,
                   decoration: TextDecoration.underline,
                 ),
-                recognizer:
-                    TapGestureRecognizer()
-                      ..onTap = () {
-                        Navigator.pop(context);
-                        launch(
-                          'https://slebe.dev/draw-a-lot/mobile_app_privacy_policy.html',
-                        );
-                      },
+                recognizer: TapGestureRecognizer()
+                  ..onTap = () {
+                    Navigator.pop(context);
+                    launch(
+                      'https://slebe.dev/draw-a-lot/mobile_app_privacy_policy.html',
+                    );
+                  },
               ),
               WidgetSpan(child: Icon(Icons.launch, size: 14)),
             ],
           ),
         ),
-        SizedBox(height: 20),
+        SizedBox(height: 30),
       ],
     ),
   );
