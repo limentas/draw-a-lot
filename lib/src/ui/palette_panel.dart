@@ -1,7 +1,6 @@
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'palette_button.dart';
 
@@ -338,21 +337,29 @@ class PalettePanel extends StatelessWidget {
           ),
           Align(
             alignment: Alignment.topCenter,
-            child: Container(
-              height: 20,
-              width: 500,
-              color: Colors.white54,
-              child: SvgPicture.asset("icons/keyboard_arrow_up-24px.svg"),
-            ),
+            child: Stack(alignment: Alignment.center, children: [
+              Container(
+                height: 24,
+                width: 500,
+                color: Colors.white54,
+              ),
+              Positioned(
+                  top: -8,
+                  child: Icon(Icons.keyboard_arrow_up_rounded, size: 40))
+            ]),
           ),
           Align(
             alignment: Alignment.bottomCenter,
-            child: Container(
-              height: 20,
-              width: 500,
-              color: Colors.white54,
-              child: SvgPicture.asset("icons/keyboard_arrow_down-24px.svg"),
-            ),
+            child: Stack(alignment: Alignment.center, children: [
+              Container(
+                height: 24,
+                width: 500,
+                color: Colors.white54,
+              ),
+              Positioned(
+                  top: -8, // Icon is bigger than Container - shift it up
+                  child: Icon(Icons.keyboard_arrow_down_rounded, size: 40))
+            ]),
           ),
         ],
       ),

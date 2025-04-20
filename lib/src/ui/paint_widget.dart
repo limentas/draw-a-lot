@@ -2,8 +2,6 @@ import 'dart:collection';
 import 'dart:ui' as dart_ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
-import 'package:flutter_svg/svg.dart';
 import 'package:flutter/services.dart';
 import 'package:collection/collection.dart';
 
@@ -111,11 +109,10 @@ class PaintWidgetState extends State<PaintWidget> {
   }
 
   Future<dart_ui.Image> saveToImage() {
-    //return Future.value(_paintData.imageForColoring!);
     return _drawToImage(_screenPhysicalSize);
   }
 
-  void setImageForColoring(String newImageForColoringName) {
+  void setImageForColoring(String newImageForColoringName) async {
     if (newImageForColoringName.isEmpty) {
       //switching to blank canvas mode
       _loadedImageForColoringName = newImageForColoringName;
@@ -128,33 +125,26 @@ class PaintWidgetState extends State<PaintWidget> {
     if (newImageForColoringName == _loadedImageForColoringName) return;
     _loadedImageForColoringName = newImageForColoringName;
 
-    rootBundle.loadString(newImageForColoringName).then((rawSvg) {
-      return vg.loadPicture(SvgStringLoader(rawSvg), null);
-    }).then((pictureInfo) {
-      print("Picture for coloring size = ${pictureInfo.size}");
-      return pictureInfo.picture.toImage(
-        (_screenPhysicalSize.width).ceil(),
-        (_screenPhysicalSize.height).ceil(),
-      );
-    }).then((image) {
-      image.toByteData(format: dart_ui.ImageByteFormat.rawUnmodified).then((
-        byteData,
-      ) {
-        _imageForColoringByteData = byteData;
-        _paintData.imageForColoring = image;
+    final stopwatch = Stopwatch()..start();
+    _paintData.imageForColoring = await PaintFunctions.rasterizeSvgFromAsset(
+        newImageForColoringName,
+        _screenPhysicalSize.width.ceil(),
+        _screenPhysicalSize.height.ceil());
+    print("Rasterizing vector image took ${stopwatch.elapsed}");
+    final byteData = await _paintData.imageForColoring!
+        .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
+    _imageForColoringByteData = byteData;
 
-        clean();
-        repaint();
-      });
-    });
+    clean();
+    repaint();
   }
 
   Future<dart_ui.Image> _drawToImage(
     Size imageSize, {
     bool redrawCache = false,
   }) {
-    var recorder = new dart_ui.PictureRecorder();
-    var canvas = Canvas(recorder);
+    final recorder = dart_ui.PictureRecorder();
+    final canvas = Canvas(recorder);
 
     if (redrawCache) {
       var entry = _historyToUndo.lastEntry();
@@ -213,12 +203,13 @@ class PaintWidgetState extends State<PaintWidget> {
     }
     canvas.restore();
 
-    if (_paintData.imageForColoring != null)
+    if (_paintData.imageForColoring != null) {
       canvas.drawImage(
         _paintData.imageForColoring!,
         Offset(0, 0),
         Paint()..blendMode = BlendMode.darken,
       );
+    }
 
     return recorder.endRecording().toImage(
           imageSize.width.ceil(),
@@ -420,7 +411,7 @@ class _CustomPainter extends CustomPainter {
       );
     }
 
-    if (_paintData.imageForColoring != null)
+    if (_paintData.imageForColoring != null) {
       canvas.drawImageRect(
         _paintData.imageForColoring!,
         Rect.fromLTRB(
@@ -432,6 +423,7 @@ class _CustomPainter extends CustomPainter {
         Rect.fromLTRB(0, 0, size.width, size.height),
         Paint()..blendMode = BlendMode.darken,
       );
+    }
   }
 
   @override

@@ -5,6 +5,8 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:bitmap/bitmap.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import 'color.dart';
 
@@ -36,8 +38,8 @@ class PaintFunctions {
       //final colorBlack = Color.fromColor(Colors.black);
       //print("color diff " +
       //    colorFromConstraint.difference(colorBlack).toString());
-      if (checkConstraintApprox(colorFromConstraint)) {
-        var correctedPhysicalPoint = correctPhysicalPoint(
+      if (_checkConstraintApprox(colorFromConstraint)) {
+        var correctedPhysicalPoint = _correctPhysicalPoint(
           constraintImageData,
           constraintImageSize,
           physicalPoint,
@@ -75,7 +77,35 @@ class PaintFunctions {
     return result;
   }
 
-  static dart_ui.Offset? correctPhysicalPoint(
+  // Rasterizes an SVG file from assets to Image with specified pixel size
+  static Future<dart_ui.Image> rasterizeSvgFromAsset(
+      String assetPath, int targetWidth, int targetHeight) async {
+    final rawSvg = await rootBundle.loadString(assetPath);
+    final pictureInfo = await vg.loadPicture(SvgStringLoader(rawSvg), null);
+    final scale = min(
+      targetWidth / pictureInfo.size.width,
+      targetHeight / pictureInfo.size.height,
+    );
+    final scaledSvgWidth = pictureInfo.size.width * scale;
+    final scaledSvgHeight = pictureInfo.size.height * scale;
+
+    print("Picture for coloring original size = ${pictureInfo.size}, "
+        "scale = ${scale}, "
+        "scaled size: ${scaledSvgWidth} x ${scaledSvgHeight}");
+
+    final recorder = dart_ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+
+    final dx = (targetWidth - scaledSvgWidth) / 2;
+    final dy = (targetHeight - scaledSvgHeight) / 2;
+    canvas.translate(dx, dy);
+    canvas.scale(scale);
+    canvas.drawPicture(pictureInfo.picture);
+    final rasterPicture = recorder.endRecording();
+    return rasterPicture.toImage(targetWidth, targetHeight);
+  }
+
+  static dart_ui.Offset? _correctPhysicalPoint(
     ByteData constraintImageData,
     dart_ui.Size constraintImageSize,
     dart_ui.Offset physicalPoint,
@@ -87,13 +117,12 @@ class PaintFunctions {
       if (offset.dx < 0 ||
           offset.dx >= width ||
           offset.dy < 0 ||
-          offset.dy >= height)
-        return false;
+          offset.dy >= height) return false;
       final colorFromConstraint = Color.fromRgbaInt(
         constraintBuffer[offset.dx.toInt() +
             offset.dy.toInt() * constraintImageSize.width.ceil()],
       );
-      return !checkConstraintApprox(colorFromConstraint);
+      return !_checkConstraintApprox(colorFromConstraint);
     };
     for (int radiusDist = 1; radiusDist < width; ++radiusDist) {
       var radiusDistDouble = radiusDist.toDouble();
@@ -193,7 +222,7 @@ class PaintFunctions {
           constraintBuffer[uint32PixelIndex],
         );
 
-        if (checkConstraintExact(colorFromConstraint)) {
+        if (_checkConstraintExact(colorFromConstraint)) {
           _visitedPixels[uint32PixelIndex] = _curUsedValueForVisited;
           return;
         }
@@ -239,16 +268,16 @@ class PaintFunctions {
     final bitmap = Bitmap.fromHeadless(width, height, imageBufferUint8);
     return bitmap.buildImage();
   }
-}
 
-bool checkConstraintExact(Color colorFromConstraint) {
-  final colorBlack = Color.fromColor(Colors.black);
-  return colorFromConstraint.alpha > 100 &&
-      colorFromConstraint.difference(colorBlack) < 300;
-}
+  static bool _checkConstraintExact(Color colorFromConstraint) {
+    final colorBlack = Color.fromColor(Colors.black);
+    return colorFromConstraint.alpha > 100 &&
+        colorFromConstraint.difference(colorBlack) < 300;
+  }
 
-bool checkConstraintApprox(Color colorFromConstraint) {
-  final colorBlack = Color.fromColor(Colors.black);
-  return colorFromConstraint.alpha > 100 &&
-      colorFromConstraint.difference(colorBlack) < 600;
+  static bool _checkConstraintApprox(Color colorFromConstraint) {
+    final colorBlack = Color.fromColor(Colors.black);
+    return colorFromConstraint.alpha > 100 &&
+        colorFromConstraint.difference(colorBlack) < 600;
+  }
 }

@@ -20,7 +20,6 @@ class AppWidget extends StatelessWidget {
       title: 'DrawA̲lot',
       theme: ThemeData(
         primarySwatch: Colors.blue,
-        //buttonColor: Colors.grey[800],
         buttonTheme: ButtonThemeData(height: 60),
       ),
       home: PopScope(
