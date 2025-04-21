@@ -73,13 +73,13 @@ class PaletteButtonState extends State<PaletteButton> {
         onPressed: () {
           widget._onPressed(currentColor);
         },
-        onLongPress: () {
+        onLongPress: () async {
           if (widget._colorsToChoiseFrom.isEmpty) return;
 
           widget._onPressed(currentColor);
 
           RenderBox box = context.findRenderObject() as RenderBox;
-          var colorFuture = showColorPickDialog(
+          var color = await showColorPickDialog(
             context,
             box.localToGlobal(Offset.zero).dy -
                 (widget._buttonSize - buttonSize) / 2,
@@ -87,13 +87,11 @@ class PaletteButtonState extends State<PaletteButton> {
             currentColor,
             widget._colorsToChoiseFrom,
           );
-          colorFuture.then((color) {
-            if (color != null)
-              setState(() {
-                currentColor = color;
-              });
-            widget._onPressed(currentColor);
-          });
+          if (color != null)
+            setState(() {
+              currentColor = color;
+            });
+          widget._onPressed(currentColor);
         },
       ),
     );

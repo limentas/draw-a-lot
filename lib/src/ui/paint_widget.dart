@@ -217,7 +217,7 @@ class PaintWidgetState extends State<PaintWidget> {
         );
   }
 
-  void _enqueueUpdateCacheBuffer({bool forceUpdate = false}) {
+  void _enqueueUpdateCacheBuffer({bool forceUpdate = false}) async {
     if (_cacheUpdateInProgress) {
       _updateCacheEnqueued = true;
       //if new update is forced, then enqueue force update
@@ -226,39 +226,37 @@ class PaintWidgetState extends State<PaintWidget> {
     }
 
     _cacheUpdateInProgress = true;
-    _updateCacheBuffer(forceUpdate: forceUpdate).then((value) {
-      _cacheUpdateInProgress = false;
-      if (_updateCacheEnqueued) {
-        _updateCacheEnqueued = false;
-        _enqueueUpdateCacheBuffer(forceUpdate: _forceUpdateCacheEnqueued);
-      }
-    });
+    _updateCacheBuffer(forceUpdate: forceUpdate);
+    _cacheUpdateInProgress = false;
+    if (_updateCacheEnqueued) {
+      _updateCacheEnqueued = false;
+      _enqueueUpdateCacheBuffer(forceUpdate: _forceUpdateCacheEnqueued);
+    }
   }
 
-  Future<void> _updateCacheBuffer({bool forceUpdate = false}) {
-    if (kIsWeb)
-      return new Future
-          .value(); //There is some bug in canvas.drawImage and cache does not work properly
+  void _updateCacheBuffer({bool forceUpdate = false}) async {
+    // There is some bug in canvas.drawImage and cache does not work properly
+    // This needs to be checked. A lot of time has passed since then.
+    if (kIsWeb) return;
 
-    var imageFuture = _drawToImage(
-      _screenPhysicalSize,
-      redrawCache: forceUpdate,
-    );
+    try {
+      _paintData.cacheBuffer = await _drawToImage(
+        _screenPhysicalSize,
+        redrawCache: forceUpdate,
+      );
 
-    return imageFuture.then((value) {
-      _paintData.cacheBuffer = value;
-
-      var cachedPathes = _paintData.pathesToDraw.where(
+      // Now we pass pen paths to cached image to optimize further redraws
+      final cachedPathes = _paintData.pathesToDraw.where(
         (element) => element.cached,
       );
-      for (var path in cachedPathes)
+      for (final path in cachedPathes)
         _historyToUndo.add(HistoryStep.fromPath(path));
 
       _paintData.pathesToDraw.removeWhere((element) => element.cached);
       repaint();
-    }).catchError((error) {
+    } catch (error) {
       print("Update cache error $error");
-    });
+    }
   }
 
   void _fillImage(BuildContext contex, Offset mouseLogicalPosition) async {
@@ -337,11 +335,7 @@ class PaintWidgetState extends State<PaintWidget> {
       if (path == null) return;
       path.path.lineTo(event.position.dx, event.position.dy);
       path.completed = true;
-      try {
-        _enqueueUpdateCacheBuffer();
-      } catch (error) {
-        print("err = $error");
-      }
+      _enqueueUpdateCacheBuffer();
     }
   }
 

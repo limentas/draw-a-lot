@@ -1,6 +1,7 @@
 import 'package:draw_a_lot/src/os_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:system_info2/system_info2.dart';
 
 import 'src/app_config.dart';
@@ -8,7 +9,7 @@ import 'src/ui/app_widget.dart';
 
 final megabyte = 1024 * 1024;
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
     print("Debug mode               : $kDebugMode");
@@ -33,17 +34,26 @@ void main() {
     print("system_info exception    : $e");
   }
 
-  var systemInfo = OsFunctions.getSystemInfo();
-  systemInfo.then((value) {
-    AppConfig.isX86_32 = value.isX86_32 && !kDebugMode;
-    print("ABIs                     : ${value.supportedABIs}");
-    print("Build time               : ${value.buildTime}");
-    print("Tags                     : ${value.tags}");
-    print("Hardware                 : ${value.hardware}");
-    print("Device                   : ${value.device}");
-    print("Brand                    : ${value.brand}");
-    print("Is x86                   : ${AppConfig.isX86_32}");
+  var systemInfo = await OsFunctions.getSystemInfo();
+  AppConfig.isX86_32 = systemInfo.isX86_32 && !kDebugMode;
+  print("ABIs                     : ${systemInfo.supportedABIs}");
+  print("Build time               : ${systemInfo.buildTime}");
+  print("Tags                     : ${systemInfo.tags}");
+  print("Hardware                 : ${systemInfo.hardware}");
+  print("Device                   : ${systemInfo.device}");
+  print("Brand                    : ${systemInfo.brand}");
+  print("Is x86                   : ${AppConfig.isX86_32}");
 
-    runApp(AppWidget());
-  });
+  // var style = SystemUiOverlayStyle(
+  //   systemNavigationBarColor: Colors.purple,
+  //   systemNavigationBarDividerColor: Colors.green,
+  //   systemNavigationBarIconBrightness: Brightness.dark,
+  //   systemNavigationBarContrastEnforced: false,
+  //   statusBarColor: Colors.transparent,
+  //   statusBarBrightness: Brightness.light,
+  //   statusBarIconBrightness: Brightness.dark,
+  //   systemStatusBarContrastEnforced: false,
+  // );
+
+  runApp(AppWidget());
 }

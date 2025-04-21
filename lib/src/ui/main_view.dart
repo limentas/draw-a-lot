@@ -35,27 +35,27 @@ class MainViewState extends State<MainView>
     paintWidgetKey.currentState?.undo();
   }
 
-  void saveToGallery() {
+  void saveToGallery() async {
     print("Saving picture...");
     final imageFuture = paintWidgetKey.currentState?.saveToImage();
     if (imageFuture == null) return;
 
-    OsFunctions.saveToGallery(imageFuture).catchError((error) {
-      print("An error occurred while saving the image: $error");
-      _showSnackBar(
-        context,
-        "An error occurred while saving the image: $error",
-      );
-      return false;
-    }).then((result) {
-      if (result) {
+    try {
+      var saveResult = await OsFunctions.saveToGallery(imageFuture);
+      if (saveResult) {
         print("Saved successfully");
         _showSnackBar(context, "Image saved successfully to the gallery");
       } else {
         print("An error occurred while saving the image");
         _showSnackBar(context, "An error occurred while saving the image");
       }
-    });
+    } catch (error) {
+      print("An exception occurred while saving the image: $error");
+      _showSnackBar(
+        context,
+        "An error occurred while saving the image: $error",
+      );
+    }
   }
 
   Future<void> _updateThickness(Future<double?> val) async {

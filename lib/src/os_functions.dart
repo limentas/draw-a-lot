@@ -8,20 +8,18 @@ class OsFunctions {
   static MethodChannel? _platform = null;
 
   static Future<bool> saveToGallery(Future<Image> imageFuture) async {
-    final imageBytes = await imageFuture.then(
-      (image) => image.toByteData(format: ImageByteFormat.png),
-    );
+    final image = await imageFuture;
+    final pngBytes = await image.toByteData(format: ImageByteFormat.png);
 
-    if (imageBytes == null) {
+    if (pngBytes == null) {
       throw Exception("Couldn't convert image to png");
     }
 
     _ensureInit();
 
     return _platform!.invokeMethod('saveImageToGallery', {
-          'imagePngData': imageBytes.buffer.asUint8List(),
-        })
-        as bool;
+      'imagePngData': pngBytes.buffer.asUint8List(),
+    }) as bool;
   }
 
   static Future<SystemInfo> getSystemInfo() async {
