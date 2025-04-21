@@ -2,6 +2,9 @@ import 'dart:ui' as dart_ui;
 
 import 'pen_path.dart';
 
+/// Type of history step
+/// Path - pen tool path
+/// Cache - image made by fill tool
 enum StepType { Path, Cache }
 
 class HistoryStep {
