@@ -27,22 +27,32 @@ class OsFunctions {
 
     final result = new SystemInfo();
     final resultMap = await _platform!.invokeMethod('getSystemInfo');
-    result.supportedABIs = resultMap['SUPPORTED_ABIS'] as String;
-    final abis = result.supportedABIs.split(',');
-    //If the most preferred ABI is x86 then flag this
-    if (abis.length > 0 && abis[0].toLowerCase() == 'x86') {
-      result.isX86_32 = true;
+    final abisDynamic = resultMap['SUPPORTED_ABIS'];
+    if (abisDynamic != null) {
+      result.supportedABIs = abisDynamic as String;
+      final abis = result.supportedABIs.split(',');
+      //If the most preferred ABI is x86 then flag this
+      if (abis.length > 0 && abis[0].toLowerCase() == 'x86') {
+        result.isX86_32 = true;
+      }
     }
 
-    final buildTimestamp = int.tryParse((resultMap['TIME'] as String));
-    if (buildTimestamp != null) {
-      result.buildTime = DateTime.fromMillisecondsSinceEpoch(buildTimestamp);
+    final timeDynamic = resultMap['TIME'];
+    if (timeDynamic != null) {
+      final buildTimestamp = int.tryParse(timeDynamic as String);
+      if (buildTimestamp != null) {
+        result.buildTime = DateTime.fromMillisecondsSinceEpoch(buildTimestamp);
+      }
     }
 
-    result.tags = resultMap['TAGS'] as String;
-    result.hardware = resultMap['HARDWARE'] as String;
-    result.device = resultMap['DEVICE'] as String;
-    result.brand = resultMap['BRAND'] as String;
+    final tagsDynamic = resultMap['TAGS'];
+    if (tagsDynamic != null) result.tags = tagsDynamic as String;
+    final hardwareDynamic = resultMap['HARDWARE'];
+    if (hardwareDynamic != null) result.hardware = hardwareDynamic as String;
+    final deviceDynamic = resultMap['DEVICE'];
+    if (deviceDynamic != null) result.device = deviceDynamic as String;
+    final brandDynamic = resultMap['BRAND'];
+    if (brandDynamic != null) result.brand = brandDynamic as String;
     return result;
   }
 
