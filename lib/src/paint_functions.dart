@@ -4,7 +4,6 @@ import 'dart:collection';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
-import 'package:bitmap/bitmap.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
@@ -52,27 +51,21 @@ class PaintFunctions {
     }
 
     Future<dart_ui.Image>? result;
-    if (image == null) {
-      //no cache value
-      result = _perfomFill(
-        null,
-        constraintBuffer,
-        constraintImageSize,
-        physicalPoint,
-        color,
-      );
-    } else {
-      final byteData = await image.toByteData(
+    ByteData? byteImage = null;
+    if (image != null) {
+      print("image ${image.colorSpace}");
+      byteImage = await image.toByteData(
         format: dart_ui.ImageByteFormat.rawUnmodified,
       );
-      result = _perfomFill(
-        byteData,
-        constraintBuffer,
-        constraintImageSize,
-        physicalPoint,
-        color,
-      );
     }
+
+    result = _perfomFill(
+      byteImage,
+      constraintBuffer,
+      constraintImageSize,
+      physicalPoint,
+      color,
+    );
     if (result == null) return image;
     return result;
   }
@@ -193,6 +186,8 @@ class PaintFunctions {
     );
 
     final colorToReplaceRgba = colorToReplace.toRgbaInt();
+    print(
+        "colorToReplace = ${colorToReplace} colorReplaceToRgba = ${colorReplaceTo}");
     if (colorToReplaceRgba == colorReplaceToRgba) return null;
 
     imageBufferUint32[mouseX + mouseY * width] = colorReplaceToRgba;
@@ -265,8 +260,7 @@ class PaintFunctions {
       checkNeighbor(x, y + 1);
     }
 
-    final bitmap = Bitmap.fromHeadless(width, height, imageBufferUint8);
-    return bitmap.buildImage();
+    return imageFromBuffer(width, height, imageBufferUint8);
   }
 
   static bool _checkConstraintExact(Color colorFromConstraint) {
@@ -279,5 +273,21 @@ class PaintFunctions {
     final colorBlack = Color.fromColor(Colors.black);
     return colorFromConstraint.alpha > 100 &&
         colorFromConstraint.difference(colorBlack) < 600;
+  }
+
+  static Future<dart_ui.Image> imageFromBuffer(
+      int width, int height, Uint8List data) async {
+    final buffer = await dart_ui.ImmutableBuffer.fromUint8List(data);
+    try {
+      final descriptor = dart_ui.ImageDescriptor.raw(buffer,
+          width: width,
+          height: height,
+          pixelFormat: dart_ui.PixelFormat.rgba8888);
+      final codec = await descriptor.instantiateCodec();
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } finally {
+      buffer.dispose();
+    }
   }
 }
