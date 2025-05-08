@@ -53,7 +53,6 @@ class PaintFunctions {
     Future<dart_ui.Image>? result;
     ByteData? byteImage = null;
     if (image != null) {
-      print("image ${image.colorSpace}");
       byteImage = await image.toByteData(
         format: dart_ui.ImageByteFormat.rawUnmodified,
       );
@@ -181,14 +180,13 @@ class PaintFunctions {
       imageBufferUint32 = imageData.buffer.asUint32List();
     }
 
-    final colorToReplace = Color.fromRgbaInt(
-      imageBufferUint32[mouseX + mouseY * width],
-    );
+    final colorToReplaceRgba = imageBufferUint32[mouseX + mouseY * width];
+    if (colorToReplaceRgba == colorReplaceToRgba) return null;
 
-    final colorToReplaceRgba = colorToReplace.toRgbaInt();
+    final colorToReplace = Color.fromRgbaInt(colorToReplaceRgba);
+
     print(
         "colorToReplace = ${colorToReplace} colorReplaceToRgba = ${colorReplaceTo}");
-    if (colorToReplaceRgba == colorReplaceToRgba) return null;
 
     imageBufferUint32[mouseX + mouseY * width] = colorReplaceToRgba;
 
@@ -282,7 +280,7 @@ class PaintFunctions {
       final descriptor = dart_ui.ImageDescriptor.raw(buffer,
           width: width,
           height: height,
-          pixelFormat: dart_ui.PixelFormat.rgba8888);
+          pixelFormat: dart_ui.PixelFormat.bgra8888);
       final codec = await descriptor.instantiateCodec();
       final frame = await codec.getNextFrame();
       return frame.image;
