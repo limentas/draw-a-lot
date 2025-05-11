@@ -97,6 +97,7 @@ class PaintFunctions {
     return rasterPicture.toImage(targetWidth, targetHeight);
   }
 
+  // Here we return new point if a user clicked on the contour line
   static dart_ui.Offset? _correctPhysicalPoint(
     ByteData constraintImageData,
     dart_ui.Size constraintImageSize,

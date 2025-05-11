@@ -61,7 +61,7 @@ class ColoringPicsGallery extends StatelessWidget {
       "pictures/dragon.svg",
       "pictures/dragon2.svg",
       "pictures/elephant.svg",
-      "pictures/firefighters.svg",
+      //"pictures/firefighters.svg",
       "pictures/fish.svg",
       "pictures/food.svg",
       "pictures/fruits.svg",
