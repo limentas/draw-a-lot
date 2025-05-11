@@ -280,7 +280,7 @@ class PaintFunctions {
       final descriptor = dart_ui.ImageDescriptor.raw(buffer,
           width: width,
           height: height,
-          pixelFormat: dart_ui.PixelFormat.bgra8888);
+          pixelFormat: dart_ui.PixelFormat.rgba8888);
       final codec = await descriptor.instantiateCodec();
       final frame = await codec.getNextFrame();
       return frame.image;
