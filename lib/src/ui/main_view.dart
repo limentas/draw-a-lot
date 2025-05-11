@@ -22,7 +22,7 @@ class MainViewState extends State<MainView>
   var _paintTool = PaintTool.Pen;
   final _startThickness = 20.0;
 
-  Color _selectedColor = Colors.lightBlue;
+  Color _selectedColor = Colors.red;
 
   late AnimationController _uiLockingController;
   late Animation<Offset> _uiLockingToolbarAnimation;
@@ -155,7 +155,7 @@ class MainViewState extends State<MainView>
           alignment: Alignment.centerRight,
           child: SlideTransition(
             position: _uiLockingPalletteAnimation,
-            child: PalettePanel((newColor) {
+            child: PalettePanel(paintWidgetKey.currentState?.color, (newColor) {
               paintWidgetKey.currentState?.color = newColor;
             }),
           ),

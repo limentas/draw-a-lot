@@ -5,9 +5,11 @@ import 'package:flutter/material.dart';
 import 'palette_button.dart';
 
 class PalettePanel extends StatelessWidget {
-  PalettePanel(this.onColorChanged);
+  PalettePanel(Color? color, this._onColorChanged)
+      : _color = color != null ? color : Colors.red;
 
-  final void Function(Color) onColorChanged;
+  final void Function(Color) _onColorChanged;
+  final Color _color;
 
   final _whiteColorButtonKey = GlobalKey<PaletteButtonState>();
   final _redColorButtonKey = GlobalKey<PaletteButtonState>();
@@ -27,10 +29,8 @@ class PalettePanel extends StatelessWidget {
   final _brownColorButtonKey = GlobalKey<PaletteButtonState>();
   final _blackColorButtonKey = GlobalKey<PaletteButtonState>();
 
-  final Color _startColor = Colors.lightBlue;
-
   void _updateSelectedColor(Color newColor) {
-    onColorChanged(newColor);
+    _onColorChanged(newColor);
     _whiteColorButtonKey.currentState?.updateSelectedColor(newColor);
     _redColorButtonKey.currentState?.updateSelectedColor(newColor);
     _deepOrangeColorButtonKey.currentState?.updateSelectedColor(newColor);
@@ -122,7 +122,7 @@ class PalettePanel extends StatelessWidget {
               SizedBox(height: buttonSize / 2),
               PaletteButton(
                 myColor: Colors.white,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: [],
                 key: _whiteColorButtonKey,
                 buttonSize: buttonSize,
@@ -132,7 +132,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.red,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.red,
                   accent: Colors.redAccent,
@@ -145,7 +145,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.deepOrange,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.deepOrange,
                   accent: Colors.deepOrangeAccent,
@@ -158,7 +158,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.orange,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.orange,
                   accent: Colors.orangeAccent,
@@ -171,7 +171,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.yellow,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.yellow,
                   accent: Colors.yellowAccent,
@@ -184,7 +184,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.lime,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.lime,
                   accent: Colors.limeAccent,
@@ -197,7 +197,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.lightGreen,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.lightGreen,
                   accent: Colors.lightGreenAccent,
@@ -210,7 +210,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.green,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.green,
                   accent: Colors.greenAccent,
@@ -223,7 +223,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.teal,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.teal,
                   accent: Colors.tealAccent,
@@ -236,7 +236,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.cyan,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.cyan,
                   accent: Colors.cyanAccent,
@@ -249,7 +249,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.lightBlue,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.lightBlue,
                   accent: Colors.lightBlueAccent,
@@ -262,7 +262,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.indigo,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.indigo,
                   accent: Colors.indigoAccent,
@@ -275,7 +275,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.deepPurple,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.deepPurple,
                   accent: Colors.deepPurpleAccent,
@@ -288,7 +288,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.purple.shade800,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.purple,
                   accent: Colors.purpleAccent,
@@ -301,7 +301,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.pink,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(
                   Colors.pink,
                   accent: Colors.pinkAccent,
@@ -314,7 +314,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.brown,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(Colors.brown),
                 key: _brownColorButtonKey,
                 buttonSize: buttonSize,
@@ -324,7 +324,7 @@ class PalettePanel extends StatelessWidget {
               ),
               PaletteButton(
                 myColor: Colors.black,
-                selectedColor: _startColor,
+                selectedColor: _color,
                 colorsToChoiseFrom: listGreyscale(),
                 key: _blackColorButtonKey,
                 buttonSize: buttonSize,

@@ -12,16 +12,16 @@ import 'package:draw_a_lot/src/paint_tool.dart';
 import 'package:draw_a_lot/src/paint_data.dart';
 
 class PaintWidget extends StatefulWidget {
-  PaintWidget(this.color, this._paintTool, this._penThickness, {key})
+  PaintWidget(this._color, this._paintTool, this._penThickness, {key})
       : super(key: key) {}
 
-  final dart_ui.Color color;
+  final dart_ui.Color _color;
   final PaintTool _paintTool;
   final double _penThickness;
 
   @override
   PaintWidgetState createState() =>
-      PaintWidgetState(color, _paintTool, _penThickness);
+      PaintWidgetState(_color, _paintTool, _penThickness);
 }
 
 class RepaintNotifier extends ChangeNotifier {
@@ -33,9 +33,9 @@ class RepaintNotifier extends ChangeNotifier {
 class PaintWidgetState extends State<PaintWidget> {
   PaintWidgetState(this.color, this.paintTool, this.penThickness);
 
-  var color = Colors.black;
-  double penThickness = 0.0;
-  PaintTool paintTool = PaintTool.Pen;
+  dart_ui.Color color;
+  PaintTool paintTool;
+  double penThickness;
 
   //FIFO - last element was added last
   var _historyToUndo = new DoubleLinkedQueue<HistoryStep>();
