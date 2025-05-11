@@ -39,3 +39,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /.vscode
+
+# Here I store raw pictures that still in work
+/pictures/raw
