@@ -74,11 +74,11 @@ class PaintWidgetState extends State<PaintWidget> {
       var last = _historyToUndo.removeLast();
       //to redo this step in case of cache we should add current cache to redo list
       if (last.stepType == StepType.Cache) {
-        if (_paintData.cacheBuffer != null) {
+        if (_paintData.currentImage != null) {
           --_currentCachesInUndoHistory;
           ++_currentCachesInRedoHistory;
           _historyToRedo.addFirst(
-            HistoryStep.fromCache(_paintData.cacheBuffer!),
+            HistoryStep.fromCache(_paintData.currentImage!),
           );
         }
       } else {
@@ -179,10 +179,10 @@ class PaintWidgetState extends State<PaintWidget> {
         entry = entry.nextEntry();
       }
       canvas.restore();
-    } else if (_paintData.cacheBuffer == null) {
+    } else if (_paintData.currentImage == null) {
       canvas.drawColor(Colors.white, BlendMode.src);
     } else {
-      canvas.drawImage(_paintData.cacheBuffer!, Offset(0, 0), Paint());
+      canvas.drawImage(_paintData.currentImage!, Offset(0, 0), Paint());
     }
 
     canvas.save();
@@ -240,7 +240,7 @@ class PaintWidgetState extends State<PaintWidget> {
     if (kIsWeb) return;
 
     try {
-      _paintData.cacheBuffer = await _drawToImage(
+      _paintData.currentImage = await _drawToImage(
         _screenPhysicalSize,
         redrawCache: forceUpdate,
       );
@@ -265,13 +265,13 @@ class PaintWidgetState extends State<PaintWidget> {
     try {
       final stopwatch = Stopwatch()..start();
       var image = await PaintFunctions.fillImage(
-        _paintData.cacheBuffer,
+        _paintData.currentImage,
         _imageForColoringByteData,
         _screenPhysicalSize,
         mouseLogicalPosition * _devicePixelRatio,
         color,
       );
-      if (identical(image, _paintData.cacheBuffer)) {
+      if (identical(image, _paintData.currentImage)) {
         _fillFinished = true;
         return;
       }
@@ -286,7 +286,7 @@ class PaintWidgetState extends State<PaintWidget> {
         ++_currentCachesInUndoHistory;
       }
       _historyToUndo.add(HistoryStep.fromCache(image));
-      _paintData.cacheBuffer = image;
+      _paintData.currentImage = image;
       _fillFinished = true;
       repaint();
       print("Image filled for ${stopwatch.elapsed}");
@@ -376,16 +376,16 @@ class _CustomPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (_paintData.cacheBuffer == null) {
+    if (_paintData.currentImage == null) {
       canvas.drawColor(Colors.white, BlendMode.src);
     } else {
       canvas.drawImageRect(
-        _paintData.cacheBuffer!,
+        _paintData.currentImage!,
         Rect.fromLTRB(
           0,
           0,
-          _paintData.cacheBuffer!.width.toDouble(),
-          _paintData.cacheBuffer!.height.toDouble(),
+          _paintData.currentImage!.width.toDouble(),
+          _paintData.currentImage!.height.toDouble(),
         ),
         Rect.fromLTRB(0, 0, size.width, size.height),
         Paint(),

@@ -17,53 +17,47 @@ class PaintFunctions {
 
   // Make "fill" operation and returns result image.
   // If there is nothing to do, then this method returns the same `image` object
+  // outlineForColoring - is the image containig picture for coloring (usually only contour lines)
+  // image and outlineForColoring have the same size passed via imageSize
   static Future<dart_ui.Image?> fillImage(
     dart_ui.Image? image,
-    ByteData? constraintImageData,
-    dart_ui.Size constraintImageSize,
-    dart_ui.Offset physicalPoint,
-    dart_ui.Color color,
+    ByteData? outlineForColoring,
+    ({int width, int height}) imageSize,
+    ({int x, int y}) touchPoint,
+    dart_ui.Color targetColor,
   ) async {
-    Uint32List? constraintBuffer = null;
-    if (constraintImageData != null) {
-      //checking for constraint hit
-      constraintBuffer = constraintImageData.buffer.asUint32List();
-      final colorFromConstraint = Color.fromRgbaInt(
-        constraintBuffer[physicalPoint.dx.toInt() +
-            physicalPoint.dy.toInt() * constraintImageSize.width.ceil()],
-      );
-
-      //print("colorFromConstraint " + colorFromConstraint.toString());
-      //final colorBlack = Color.fromColor(Colors.black);
-      //print("color diff " +
-      //    colorFromConstraint.difference(colorBlack).toString());
-      if (_checkConstraintApprox(colorFromConstraint)) {
-        var correctedPhysicalPoint = _correctPhysicalPoint(
-          constraintImageData,
-          constraintImageSize,
-          physicalPoint,
-        );
-        if (correctedPhysicalPoint == null) {
-          print("Couldn't correct physicall point");
-          throw new Exception("Couldn't correct physicall point");
-        }
-      }
-    }
-
     Future<dart_ui.Image>? result;
-    ByteData? byteImage = null;
+    ByteData? imageData = null;
+    Uint32List? u32ImageBuffer = null;
+    Uint32List? u32OutlineBuffer = null;
+
     if (image != null) {
-      byteImage = await image.toByteData(
+      imageData = await image.toByteData(
         format: dart_ui.ImageByteFormat.rawUnmodified,
       );
+      if (imageData == null) throw Exception("Couldn't covert image to RAW?");
+      u32ImageBuffer = imageData.buffer.asUint32List();
     }
 
+    if (outlineForColoring != null) {
+      u32OutlineBuffer = outlineForColoring.buffer.asUint32List();
+    }
+
+    var correctedTouchPoint = _correctFillPoint(
+        u32ImageBuffer, u32OutlineBuffer, imageSize, touchPoint, targetColor);
+
+    if (correctedTouchPoint == null) return image;
+
+    print(
+        "Touch point corrected from ${touchPoint.toString()} to ${correctedTouchPoint.toString()}");
+    touchPoint = correctedTouchPoint;
+
     result = _perfomFill(
-      byteImage,
-      constraintBuffer,
-      constraintImageSize,
-      physicalPoint,
-      color,
+      imageData,
+      outlineBuffer,
+      imageSize,
+      touchPoint,
+      targetColor,
     );
     if (result == null) return image;
     return result;
@@ -97,57 +91,80 @@ class PaintFunctions {
     return rasterPicture.toImage(targetWidth, targetHeight);
   }
 
-  // Here we return new point if a user clicked on the contour line
-  static dart_ui.Offset? _correctPhysicalPoint(
-    ByteData constraintImageData,
-    dart_ui.Size constraintImageSize,
-    dart_ui.Offset physicalPoint,
-  ) {
-    final constraintBuffer = constraintImageData.buffer.asUint32List();
-    final width = constraintImageSize.width.ceil();
-    final height = constraintImageSize.height.ceil();
-    final checkNeighbor = (offset) {
-      if (offset.dx < 0 ||
-          offset.dx >= width ||
-          offset.dy < 0 ||
-          offset.dy >= height) return false;
-      final colorFromConstraint = Color.fromRgbaInt(
-        constraintBuffer[offset.dx.toInt() +
-            offset.dy.toInt() * constraintImageSize.width.ceil()],
-      );
-      return !_checkConstraintApprox(colorFromConstraint);
-    };
-    for (int radiusDist = 1; radiusDist < width; ++radiusDist) {
-      var radiusDistDouble = radiusDist.toDouble();
-      var point = physicalPoint.translate(radiusDistDouble, 0);
-      if (checkNeighbor(point)) return point;
-      point = physicalPoint.translate(-radiusDistDouble, 0);
-      if (checkNeighbor(point)) return point;
-      point = physicalPoint.translate(0, radiusDistDouble);
-      if (checkNeighbor(point)) return point;
-      point = physicalPoint.translate(0, -radiusDistDouble);
-      if (checkNeighbor(point)) return point;
+  // It happens a lot that sensor screen doesn't give us correct point
+  // a user wanted to color. He we try to correct this. If user clicked
+  // outline or on a segment of the same color we try to find a closest
+  // point that is not part of outline and that has another color.
+  // Returns null if there is no such point in cosidered neighbourhood.
+  static ({int x, int y})? _correctFillPoint(
+      Uint32List? u32ImageBuffer,
+      Uint32List? u32OutlineBuffer,
+      ({int width, int height}) imageSize,
+      ({int x, int y}) touchPoint,
+      dart_ui.Color targetColor) {
+    final checkPoint = (({int x, int y}) point) {
+      if (point.x < 0 ||
+          point.x >= imageSize.width ||
+          point.y < 0 ||
+          point.y >= imageSize.height) return false;
+      if (u32OutlineBuffer != null) {
+        final colorFromConstraint = Color.fromRgbaInt(
+          u32OutlineBuffer[point.x + point.y * imageSize.width],
+        );
+        if (_checkConstraintApprox(colorFromConstraint)) return false;
+      }
 
-      for (int chordDist = 1; chordDist <= radiusDist; ++chordDist) {
-        var chortDistDouble = chordDist.toDouble();
-        var point = physicalPoint.translate(radiusDistDouble, chortDistDouble);
-        if (checkNeighbor(point)) return point;
-        point = physicalPoint.translate(radiusDistDouble, -chortDistDouble);
-        if (checkNeighbor(point)) return point;
-        point = physicalPoint.translate(-radiusDistDouble, chortDistDouble);
-        if (checkNeighbor(point)) return point;
-        point = physicalPoint.translate(-radiusDistDouble, -chortDistDouble);
-        if (checkNeighbor(point)) return point;
-        point = physicalPoint.translate(chortDistDouble, radiusDistDouble);
-        if (checkNeighbor(point)) return point;
-        point = physicalPoint.translate(-chortDistDouble, radiusDistDouble);
-        if (checkNeighbor(point)) return point;
-        point = physicalPoint.translate(chortDistDouble, -radiusDistDouble);
-        if (checkNeighbor(point)) return point;
-        point = physicalPoint.translate(-chortDistDouble, -radiusDistDouble);
-        if (checkNeighbor(point)) return point;
+      if (u32ImageBuffer != null) {
+        final colorFromImage = Color.fromRgbaInt(
+          u32ImageBuffer[point.x + point.y * imageSize.width],
+        );
+        if (targetColor == colorFromImage) return false;
+      }
+      return true;
+    };
+
+    // Check touch point itself. Maybe we don't need to correct it.
+    if (checkPoint(touchPoint)) return touchPoint;
+
+    // We don't use Euclidean distance here. To simplify integer math
+    // we just go over squares with size 0, 3, 5, ... with center in touchPoint
+    const maxRadiusToCheck = 10;
+    for (var squareSize = 1; squareSize <= maxRadiusToCheck; ++squareSize) {
+      // At first we check points that lie on horizontal and vertical axes
+      var point = (x: touchPoint.x - squareSize, y: touchPoint.y);
+      if (checkPoint(point)) return point;
+      point = (x: touchPoint.x + squareSize, y: touchPoint.y);
+      if (checkPoint(point)) return point;
+      point = (x: touchPoint.x, y: touchPoint.y - squareSize);
+      if (checkPoint(point)) return point;
+      point = (x: touchPoint.x, y: touchPoint.y + squareSize);
+      if (checkPoint(point)) return point;
+
+      // No we start to go over the square of size squareSize
+      // The order of the process:
+      // TODO:
+      for (var axisDistance = 1; axisDistance <= squareSize; ++axisDistance) {
+        var point =
+            (x: touchPoint.x - squareSize, y: touchPoint.y - axisDistance);
+        if (checkPoint(point)) return point;
+        point = (x: touchPoint.x - squareSize, y: touchPoint.y + axisDistance);
+        if (checkPoint(point)) return point;
+        point = (x: touchPoint.x + squareSize, y: touchPoint.y - axisDistance);
+        if (checkPoint(point)) return point;
+        point = (x: touchPoint.x + squareSize, y: touchPoint.y + axisDistance);
+        if (checkPoint(point)) return point;
+        point = (x: touchPoint.x - axisDistance, y: touchPoint.y - squareSize);
+        if (checkPoint(point)) return point;
+        point = (x: touchPoint.x + axisDistance, y: touchPoint.y - squareSize);
+        if (checkPoint(point)) return point;
+        point = (x: touchPoint.x - axisDistance, y: touchPoint.y + squareSize);
+        if (checkPoint(point)) return point;
+        point = (x: touchPoint.x + axisDistance, y: touchPoint.y + squareSize);
+        if (checkPoint(point)) return point;
       }
     }
+
+    // We couldn't find a point satisfying the criteria above.
     return null;
   }
 
@@ -156,11 +173,11 @@ class PaintFunctions {
     ByteData? imageData,
     Uint32List? constraintBuffer,
     dart_ui.Size constraintImageSize,
-    dart_ui.Offset physicalPoint,
+    dart_ui.Offset fillPoint,
     dart_ui.Color color,
   ) {
-    final mouseX = physicalPoint.dx.toInt();
-    final mouseY = physicalPoint.dy.toInt();
+    final mouseX = fillPoint.dx.toInt();
+    final mouseY = fillPoint.dy.toInt();
     final width = constraintImageSize.width.ceil();
     final height = constraintImageSize.height.ceil();
 
