@@ -17,9 +17,10 @@ class OsFunctions {
 
     _ensureInit();
 
-    return _platform!.invokeMethod('saveImageToGallery', {
+    final result = await _platform!.invokeMethod('saveImageToGallery', {
       'imagePngData': pngBytes.buffer.asUint8List(),
-    }) as bool;
+    });
+    return result as bool;
   }
 
   static Future<SystemInfo> getSystemInfo() async {
