@@ -1,7 +1,6 @@
 import 'package:draw_a_lot/src/os_functions.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:system_info2/system_info2.dart';
 
 import 'src/app_config.dart';
@@ -43,6 +42,7 @@ void main() async {
   print("Device                   : ${systemInfo.device}");
   print("Brand                    : ${systemInfo.brand}");
   print("Is x86                   : ${AppConfig.isX86_32}");
+  print("Is Little endian         : ${Endian.host == Endian.little}");
 
   // var style = SystemUiOverlayStyle(
   //   systemNavigationBarColor: Colors.purple,

@@ -2,7 +2,6 @@ import 'dart:collection';
 import 'dart:ui' as dart_ui;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:collection/collection.dart';
 
 import 'package:draw_a_lot/src/pen_path.dart';
@@ -10,18 +9,19 @@ import 'package:draw_a_lot/src/history_step.dart';
 import 'package:draw_a_lot/src/paint_functions.dart';
 import 'package:draw_a_lot/src/paint_tool.dart';
 import 'package:draw_a_lot/src/paint_data.dart';
+import 'package:draw_a_lot/src/color.dart' as my_color;
 
 class PaintWidget extends StatefulWidget {
-  PaintWidget(this._color, this._paintTool, this._penThickness, {key})
-      : super(key: key) {}
+  PaintWidget(this.paintTool, this.color, this.penThickness, {key})
+      : super(key: key);
 
-  final dart_ui.Color _color;
-  final PaintTool _paintTool;
-  final double _penThickness;
+  final PaintTool paintTool;
+  final dart_ui.Color color;
+  final double penThickness;
 
   @override
   PaintWidgetState createState() =>
-      PaintWidgetState(_color, _paintTool, _penThickness);
+      PaintWidgetState(paintTool, color, penThickness);
 }
 
 class RepaintNotifier extends ChangeNotifier {
@@ -31,10 +31,10 @@ class RepaintNotifier extends ChangeNotifier {
 }
 
 class PaintWidgetState extends State<PaintWidget> {
-  PaintWidgetState(this.color, this.paintTool, this.penThickness);
+  PaintWidgetState(this.paintTool, this.color, this.penThickness) {}
 
-  dart_ui.Color color;
   PaintTool paintTool;
+  dart_ui.Color color;
   double penThickness;
 
   //FIFO - last element was added last
@@ -46,8 +46,7 @@ class PaintWidgetState extends State<PaintWidget> {
   var _currentCachesInUndoHistory = 0;
   var _currentCachesInRedoHistory = 0;
 
-  final PaintData _paintData = new PaintData();
-  ByteData? _imageForColoringByteData;
+  final PaintData _paintData = PaintData();
   var _loadedImageForColoringName;
   var _fillFinished = true;
   var _repaintNotifier = new RepaintNotifier();
@@ -116,8 +115,8 @@ class PaintWidgetState extends State<PaintWidget> {
     if (newImageForColoringName.isEmpty) {
       //switching to blank canvas mode
       _loadedImageForColoringName = newImageForColoringName;
-      _imageForColoringByteData = null;
       _paintData.imageForColoring = null;
+      _paintData.imageForColoringBytes = null;
       clean();
       repaint();
       return;
@@ -131,9 +130,8 @@ class PaintWidgetState extends State<PaintWidget> {
         _screenPhysicalSize.width.ceil(),
         _screenPhysicalSize.height.ceil());
     print("Rasterizing vector image took ${stopwatch.elapsed}");
-    final byteData = await _paintData.imageForColoring!
+    _paintData.imageForColoringBytes = await _paintData.imageForColoring!
         .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
-    _imageForColoringByteData = byteData;
 
     clean();
     repaint();
@@ -245,6 +243,9 @@ class PaintWidgetState extends State<PaintWidget> {
         redrawCache: forceUpdate,
       );
 
+      _paintData.currentImageBytes = await _paintData.currentImage!
+          .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
+
       // Now we pass pen paths to cached image to optimize further redraws
       final cachedPathes = _paintData.pathesToDraw.where(
         (element) => element.cached,
@@ -259,16 +260,29 @@ class PaintWidgetState extends State<PaintWidget> {
     }
   }
 
+  void _addPointToPath(int pointerId, Offset point, bool lastPoint) {
+    var path = _paintData.pathesToDraw.firstWhereOrNull(
+      (element) => element.pointerId == pointerId,
+    );
+    if (path == null) return;
+    path.path.lineTo(point.dx, point.dy);
+    path.completed = lastPoint;
+  }
+
   void _fillImage(BuildContext contex, Offset mouseLogicalPosition) async {
     if (!_fillFinished) return;
     _fillFinished = false;
     try {
       final stopwatch = Stopwatch()..start();
+      final touchPoint = mouseLogicalPosition * _devicePixelRatio;
       var image = await PaintFunctions.fillImage(
         _paintData.currentImage,
-        _imageForColoringByteData,
-        _screenPhysicalSize,
-        mouseLogicalPosition * _devicePixelRatio,
+        _paintData.imageForColoringBytes,
+        (
+          width: _screenPhysicalSize.width.ceil(),
+          height: _screenPhysicalSize.height.ceil(),
+        ),
+        (x: touchPoint.dx.ceil(), y: touchPoint.dy.ceil()),
         color,
       );
       if (identical(image, _paintData.currentImage)) {
@@ -287,6 +301,10 @@ class PaintWidgetState extends State<PaintWidget> {
       }
       _historyToUndo.add(HistoryStep.fromCache(image));
       _paintData.currentImage = image;
+      if (kDebugMode) {
+        _paintData.currentImageBytes = await _paintData.currentImage!
+            .toByteData(format: dart_ui.ImageByteFormat.rawUnmodified);
+      }
       _fillFinished = true;
       repaint();
       print("Image filled for ${stopwatch.elapsed}");
@@ -294,6 +312,25 @@ class PaintWidgetState extends State<PaintWidget> {
       print("Fill image error catched: $err");
       _fillFinished = true;
     }
+  }
+
+  void _debugTouchPoint(int pointerId, Offset point) {
+    final touchPoint = point * _devicePixelRatio;
+    final imageColor = my_color.Color.fromRgbaInt(
+      _paintData.currentImageBytes?.buffer.asUint32List()[
+              (touchPoint.dy * _screenPhysicalSize.width.ceil() + touchPoint.dx)
+                  .toInt()] ??
+          0,
+    );
+    final outlineColor = my_color.Color.fromRgbaInt(
+      _paintData.imageForColoringBytes?.buffer.asUint32List()[
+              (touchPoint.dy * _screenPhysicalSize.width.ceil() + touchPoint.dx)
+                  .toInt()] ??
+          0,
+    );
+
+    print(
+        "_debugTouchPoint ${touchPoint}. Color: ${imageColor}, Outline: ${outlineColor}");
   }
 
   void _onMouseDown(BuildContext contex, PointerDownEvent event) {
@@ -308,6 +345,8 @@ class PaintWidgetState extends State<PaintWidget> {
       _paintData.pathesToDraw.add(pathPart);
     } else if (paintTool == PaintTool.Fill) {
       _fillImage(contex, event.position);
+    } else if (paintTool == PaintTool.Debug) {
+      _debugTouchPoint(event.pointer, event.position);
     }
 
     if (_historyToRedo.isNotEmpty) {
@@ -318,28 +357,30 @@ class PaintWidgetState extends State<PaintWidget> {
 
   void _onMouseMove(PointerMoveEvent event) {
     if (paintTool == PaintTool.Pen) {
-      var path = _paintData.pathesToDraw.firstWhereOrNull(
-        (element) => element.pointerId == event.pointer,
-      );
-      if (path == null) return;
-      path.path.lineTo(event.position.dx, event.position.dy);
+      _addPointToPath(event.pointer, event.position, false);
       repaint();
-    } else if (paintTool == PaintTool.Fill) {}
+    } else if (paintTool == PaintTool.Fill) {
+    } else if (paintTool == PaintTool.Debug) {
+      _debugTouchPoint(event.pointer, event.position);
+    }
   }
 
   void _onMouseUp(PointerUpEvent event) {
     if (paintTool == PaintTool.Pen) {
-      var path = _paintData.pathesToDraw.firstWhereOrNull(
-        (element) => element.pointerId == event.pointer,
-      );
-      if (path == null) return;
-      path.path.lineTo(event.position.dx, event.position.dy);
-      path.completed = true;
+      _addPointToPath(event.pointer, event.position, true);
       _enqueueUpdateCacheBuffer();
+    } else if (paintTool == PaintTool.Debug) {
+      _debugTouchPoint(event.pointer, event.position);
     }
   }
 
   @override
+  @override
+  void dispose() {
+    _repaintNotifier.dispose();
+    super.dispose();
+  }
+
   Widget build(BuildContext context) {
     _screenLogicalSize = MediaQuery.of(context).size;
     _devicePixelRatio = MediaQuery.of(context).devicePixelRatio;

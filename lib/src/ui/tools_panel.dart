@@ -8,10 +8,10 @@ import 'package:draw_a_lot/src/paint_tool.dart';
 import 'tool_button.dart';
 import 'thickness_dialog.dart';
 
-class ToolsPanel extends StatelessWidget {
+class ToolsPanel extends StatefulWidget {
   ToolsPanel(
-    this._startTool,
-    this._thickness, {
+    this.startTool,
+    this.startThickness, {
     required this.onPaintToolChanged,
     required this.onThicknessChanged,
     required this.onUndoCalled,
@@ -20,14 +20,48 @@ class ToolsPanel extends StatelessWidget {
     required this.onMenuCalled,
   });
 
-  final _thicknessButtonKey = GlobalKey<ToolButtonState>();
-  final _fillButtonKey = GlobalKey<ToolButtonState>();
-
-  final _startTool;
-  final _thickness;
+  final PaintTool startTool;
+  final double startThickness;
 
   final void Function(PaintTool) onPaintToolChanged;
-  final void Function(Future<double?>) onThicknessChanged;
+  final void Function(double) onThicknessChanged;
+
+  final void Function() onUndoCalled;
+  final void Function() onRedoCalled;
+
+  final void Function() onLockCalled;
+  final void Function() onMenuCalled;
+
+  @override
+  State<StatefulWidget> createState() {
+    return ToolsPanelState(
+        startTool,
+        startThickness,
+        onPaintToolChanged,
+        onThicknessChanged,
+        onUndoCalled,
+        onRedoCalled,
+        onLockCalled,
+        onMenuCalled);
+  }
+}
+
+class ToolsPanelState extends State<ToolsPanel> {
+  ToolsPanelState(
+      this._tool,
+      this._thickness,
+      this.onPaintToolChanged,
+      this.onThicknessChanged,
+      this.onUndoCalled,
+      this.onRedoCalled,
+      this.onLockCalled,
+      this.onMenuCalled);
+
+  PaintTool _tool;
+  double _thickness;
+
+  final void Function(PaintTool) onPaintToolChanged;
+  final void Function(double) onThicknessChanged;
 
   final void Function() onUndoCalled;
   final void Function() onRedoCalled;
@@ -37,8 +71,16 @@ class ToolsPanel extends StatelessWidget {
 
   void _updateTool(PaintTool tool) {
     onPaintToolChanged(tool);
-    _thicknessButtonKey.currentState?.setToggled(tool == PaintTool.Pen);
-    _fillButtonKey.currentState?.setToggled(tool == PaintTool.Fill);
+    setState(() {
+      _tool = tool;
+    });
+  }
+
+  void _updateThickness(double thickness) {
+    onThicknessChanged(thickness);
+    setState(() {
+      _thickness = thickness;
+    });
   }
 
   @override
@@ -47,31 +89,29 @@ class ToolsPanel extends StatelessWidget {
       children: <Widget>[
         SizedBox(height: 20),
         ToolButton(
-          key: _thicknessButtonKey,
           color: Colors.black,
           svgAssetName: 'icons/brush_thickness.svg',
-          startToggled: _startTool == PaintTool.Pen,
-          onPressed: () {
+          startToggled: _tool == PaintTool.Pen,
+          onPressed: () async {
             _updateTool(PaintTool.Pen);
             final buttonHeight = min(
               80.0,
               MediaQuery.of(context).size.height / 5 - 12,
             );
-            var thicknessFuture = showThicknessDialog(
+            var thickness = await showThicknessDialog(
               context,
               buttonHeight,
               20.0,
               _thickness,
             );
-            onThicknessChanged(thicknessFuture);
+            if (thickness != null) _updateThickness(thickness);
           },
         ),
         const Spacer(),
         ToolButton(
-          key: _fillButtonKey,
           iconData: Icons.format_color_fill,
           color: Colors.green.shade900,
-          startToggled: _startTool == PaintTool.Fill,
+          startToggled: _tool == PaintTool.Fill,
           disabled: kIsWeb == true || AppConfig.isX86_32,
           onPressed: () => _updateTool(PaintTool.Fill),
         ),
@@ -87,6 +127,15 @@ class ToolsPanel extends StatelessWidget {
           color: Colors.blue.shade900,
           onPressed: onRedoCalled,
         ),
+        const Spacer(flex: 10),
+        Visibility(
+            visible: kDebugMode,
+            child: ToolButton(
+              iconData: Icons.bug_report,
+              color: Colors.indigo.shade900,
+              startToggled: _tool == PaintTool.Debug,
+              onPressed: () => _updateTool(PaintTool.Debug),
+            )),
         const Spacer(flex: 10),
         ToolButton(
           iconData: Icons.fullscreen,

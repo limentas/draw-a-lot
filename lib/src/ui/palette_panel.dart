@@ -4,51 +4,23 @@ import 'package:flutter/material.dart';
 
 import 'palette_button.dart';
 
-class PalettePanel extends StatelessWidget {
-  PalettePanel(Color? color, this._onColorChanged)
-      : _color = color != null ? color : Colors.red;
+class PalettePanel extends StatefulWidget {
+  PalettePanel(this.startColor, this.onColorChanged);
 
-  final void Function(Color) _onColorChanged;
-  final Color _color;
+  final Color startColor;
+  final void Function(Color) onColorChanged;
 
-  final _whiteColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _redColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _deepOrangeColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _orangeColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _yellowColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _limeColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _lightGreenColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _greenColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _tealColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _cyanColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _lightBlueColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _indigoColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _deepPurpleColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _purpleColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _pinkColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _brownColorButtonKey = GlobalKey<PaletteButtonState>();
-  final _blackColorButtonKey = GlobalKey<PaletteButtonState>();
-
-  void _updateSelectedColor(Color newColor) {
-    _onColorChanged(newColor);
-    _whiteColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _redColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _deepOrangeColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _orangeColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _yellowColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _limeColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _lightGreenColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _greenColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _tealColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _cyanColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _lightBlueColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _indigoColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _deepPurpleColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _purpleColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _pinkColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _brownColorButtonKey.currentState?.updateSelectedColor(newColor);
-    _blackColorButtonKey.currentState?.updateSelectedColor(newColor);
+  @override
+  State<StatefulWidget> createState() {
+    return PalettePanelState(startColor, onColorChanged);
   }
+}
+
+class PalettePanelState extends State<PalettePanel> {
+  PalettePanelState(this._color, this.onColorChanged);
+
+  Color _color;
+  final void Function(Color) onColorChanged;
 
   List<Color> listAllMaterialColors(
     MaterialColor color, {
@@ -103,6 +75,13 @@ class PalettePanel extends StatelessWidget {
     ];
   }
 
+  void _updateSelectedColor(Color newColor) {
+    onColorChanged(newColor);
+    setState(() {
+      _color = newColor;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     var buttonSize = max(
@@ -112,7 +91,6 @@ class PalettePanel extends StatelessWidget {
         (MediaQuery.of(context).size.width - 90) / 14 - 2,
       ),
     );
-    //return Column(mainAxisSize: MainAxisSize.max, children: <Widget>[
     return SizedBox(
       width: buttonSize,
       child: Stack(
@@ -124,7 +102,6 @@ class PalettePanel extends StatelessWidget {
                 myColor: Colors.white,
                 selectedColor: _color,
                 colorsToChoiseFrom: [],
-                key: _whiteColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -137,7 +114,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.red,
                   accent: Colors.redAccent,
                 ),
-                key: _redColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -150,7 +126,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.deepOrange,
                   accent: Colors.deepOrangeAccent,
                 ),
-                key: _deepOrangeColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -163,7 +138,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.orange,
                   accent: Colors.orangeAccent,
                 ),
-                key: _orangeColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -176,7 +150,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.yellow,
                   accent: Colors.yellowAccent,
                 ),
-                key: _yellowColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -189,7 +162,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.lime,
                   accent: Colors.limeAccent,
                 ),
-                key: _limeColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -202,7 +174,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.lightGreen,
                   accent: Colors.lightGreenAccent,
                 ),
-                key: _lightGreenColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -215,7 +186,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.green,
                   accent: Colors.greenAccent,
                 ),
-                key: _greenColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -228,7 +198,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.teal,
                   accent: Colors.tealAccent,
                 ),
-                key: _tealColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -241,7 +210,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.cyan,
                   accent: Colors.cyanAccent,
                 ),
-                key: _cyanColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -254,7 +222,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.lightBlue,
                   accent: Colors.lightBlueAccent,
                 ),
-                key: _lightBlueColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -267,7 +234,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.indigo,
                   accent: Colors.indigoAccent,
                 ),
-                key: _indigoColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -280,7 +246,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.deepPurple,
                   accent: Colors.deepPurpleAccent,
                 ),
-                key: _deepPurpleColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -293,7 +258,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.purple,
                   accent: Colors.purpleAccent,
                 ),
-                key: _purpleColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -306,7 +270,6 @@ class PalettePanel extends StatelessWidget {
                   Colors.pink,
                   accent: Colors.pinkAccent,
                 ),
-                key: _pinkColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -316,7 +279,6 @@ class PalettePanel extends StatelessWidget {
                 myColor: Colors.brown,
                 selectedColor: _color,
                 colorsToChoiseFrom: listAllMaterialColors(Colors.brown),
-                key: _brownColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);
@@ -326,7 +288,6 @@ class PalettePanel extends StatelessWidget {
                 myColor: Colors.black,
                 selectedColor: _color,
                 colorsToChoiseFrom: listGreyscale(),
-                key: _blackColorButtonKey,
                 buttonSize: buttonSize,
                 onPressed: (color) {
                   _updateSelectedColor(color);

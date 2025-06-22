@@ -54,7 +54,7 @@ class PaintFunctions {
 
     result = _perfomFill(
       imageData,
-      outlineBuffer,
+      u32OutlineBuffer,
       imageSize,
       touchPoint,
       targetColor,
@@ -172,20 +172,24 @@ class PaintFunctions {
   static Future<dart_ui.Image>? _perfomFill(
     ByteData? imageData,
     Uint32List? constraintBuffer,
-    dart_ui.Size constraintImageSize,
-    dart_ui.Offset fillPoint,
+    ({int width, int height}) imageSize,
+    ({int x, int y}) touchPoint,
     dart_ui.Color color,
   ) {
-    final mouseX = fillPoint.dx.toInt();
-    final mouseY = fillPoint.dy.toInt();
-    final width = constraintImageSize.width.ceil();
-    final height = constraintImageSize.height.ceil();
+    final mouseX = touchPoint.x;
+    final mouseY = touchPoint.y;
+    final width = imageSize.width;
+    final height = imageSize.height;
 
     Uint8List imageBufferUint8;
     Uint32List imageBufferUint32;
 
     final colorReplaceTo = Color.fromColor(color);
     final colorReplaceToRgba = colorReplaceTo.toRgbaInt();
+
+    print(
+        "colorReplaceToRgba = ${colorReplaceTo.red}, ${colorReplaceTo.green}, "
+        "${colorReplaceTo.blue}, ${colorReplaceTo.alpha}");
 
     if (imageData == null) {
       if (colorReplaceToRgba == 0) return null;
@@ -295,10 +299,11 @@ class PaintFunctions {
       int width, int height, Uint8List data) async {
     final buffer = await dart_ui.ImmutableBuffer.fromUint8List(data);
     try {
+      final pixelFormat = Endian.host == Endian.little
+          ? dart_ui.PixelFormat.bgra8888
+          : dart_ui.PixelFormat.rgba8888;
       final descriptor = dart_ui.ImageDescriptor.raw(buffer,
-          width: width,
-          height: height,
-          pixelFormat: dart_ui.PixelFormat.rgba8888);
+          width: width, height: height, pixelFormat: pixelFormat);
       final codec = await descriptor.instantiateCodec();
       final frame = await codec.getNextFrame();
       return frame.image;

@@ -24,34 +24,22 @@ class PaletteButton extends StatefulWidget {
   final double _buttonSize;
 
   @override
-  PaletteButtonState createState() =>
-      PaletteButtonState(_myColor, _selectedColor);
+  PaletteButtonState createState() => PaletteButtonState(_myColor);
 }
 
 class PaletteButtonState extends State<PaletteButton> {
-  PaletteButtonState(Color myColor, Color selectedColor)
-      : selectedColor = selectedColor,
-        currentColor = myColor {
-    selected = selectedColor == myColor;
-  }
+  PaletteButtonState(Color myColor) : currentColor = myColor;
 
   final double _defaultButtonElevation = 5.0;
   final double _toggledButtonElevation = 0.0;
 
-  void updateSelectedColor(Color selectedColor) {
-    setState(() {
-      selectedColor = selectedColor;
-      selected = selectedColor == currentColor;
-    });
-  }
-
-  Color selectedColor; //color selected from whole palette
   Color currentColor; //color of this button
-  late bool selected;
 
   @override
   Widget build(BuildContext context) {
-    final buttonSize = selected ? widget._buttonSize * 0.7 : widget._buttonSize;
+    final buttonSize = widget._selectedColor == currentColor
+        ? widget._buttonSize * 0.7
+        : widget._buttonSize;
     return Padding(
       padding: EdgeInsets.all(1),
       child: ElevatedButton(

@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
-import 'main_view.dart';
 import 'scaffold_widget.dart';
 
 // This widget is the root of the application.
 class AppWidget extends StatelessWidget {
-  final _mainWidgetKey = GlobalKey<MainViewState>();
-
   @override
   Widget build(BuildContext context) {
     SystemChrome.setPreferredOrientations([
@@ -26,6 +23,9 @@ class AppWidget extends StatelessWidget {
         systemNavigationBarColor: Colors.grey,
         systemNavigationBarContrastEnforced: false);
     SystemChrome.setSystemUIOverlayStyle(style);
+
+    var scaffold = ScaffoldWidget();
+
     return MaterialApp(
       title: 'DrawA̲lot',
       theme: ThemeData(
@@ -35,9 +35,9 @@ class AppWidget extends StatelessWidget {
         onPopInvokedWithResult: (bool didPop, dynamic result) {
           if (didPop) return;
           print("Back button clicked");
-          _mainWidgetKey.currentState?.undo();
+          scaffold.undo();
         },
-        child: ScaffoldWidget(_mainWidgetKey),
+        child: scaffold,
       ),
     );
   }

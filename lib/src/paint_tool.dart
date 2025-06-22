@@ -1,1 +1,1 @@
-enum PaintTool { Pen, Fill }
+enum PaintTool { Pen, Fill, Debug }

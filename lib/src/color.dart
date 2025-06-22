@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' as dart_ui;
 import 'dart:math';
 
@@ -5,10 +6,10 @@ import 'dart:math';
 class Color {
   Color();
   Color.fromColor(dart_ui.Color color)
-    : red = color.red,
-      green = color.green,
-      blue = color.blue,
-      alpha = color.alpha;
+      : red = color.red,
+        green = color.green,
+        blue = color.blue,
+        alpha = color.alpha;
 
   Color.fromRgba(this.red, this.green, this.blue, this.alpha);
   Color.fromRgbaInt(int rgba) {
@@ -38,10 +39,15 @@ class Color {
 
   //red is less significant byte
   int toRgbaInt() {
-    return (red & 0xFF) |
-        ((green & 0xFF) << 8) |
-        ((blue & 0xFF) << 16) |
-        ((alpha & 0xFF) << 24);
+    return Endian.host == Endian.little
+        ? (blue & 0xFF) |
+            ((green & 0xFF) << 8) |
+            ((red & 0xFF) << 16) |
+            ((alpha & 0xFF) << 24)
+        : (red & 0xFF) |
+            ((green & 0xFF) << 8) |
+            ((blue & 0xFF) << 16) |
+            ((alpha & 0xFF) << 24);
   }
 
   @override

@@ -5,30 +5,27 @@ import 'main_view.dart';
 import 'app_drawer.dart';
 import 'coloring_pics_gallery.dart';
 
+//ignore: must_be_immutable
 class ScaffoldWidget extends StatelessWidget {
-  ScaffoldWidget(GlobalKey<MainViewState> mainWidgetKey)
-      : _mainWidgetKey = mainWidgetKey;
+  MainView? _mainView = null;
 
-  final GlobalKey<MainViewState> _mainWidgetKey;
+  void undo() {
+    _mainView?.undo();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       extendBodyBehindAppBar: false,
       resizeToAvoidBottomInset: false,
-      //drawerEdgeDragWidth: 0,
-      body: MainView(key: _mainWidgetKey),
+      body: _mainView = MainView(),
       drawerEnableOpenDragGesture: false,
       drawer: kIsWeb
           ? null
           : createDrawer(
               context,
-              onSaveToGallery: () =>
-                  _mainWidgetKey.currentState?.saveToGallery(),
-              onBlankCanvasChoosen: () {
-                _mainWidgetKey.currentState?.paintWidgetKey.currentState
-                    ?.setImageForColoring("");
-              },
+              onSaveToGallery: () => _mainView?.saveToGallery(context),
+              onBlankCanvasChoosen: () => _mainView?.newBlankCanvas(),
               onColoringPicChoosen: () async {
                 var imagePath = await showGeneralDialog<String>(
                   context: context,
@@ -40,8 +37,7 @@ class ScaffoldWidget extends StatelessWidget {
                   },
                 );
                 if (imagePath != null) {
-                  _mainWidgetKey.currentState?.paintWidgetKey.currentState
-                      ?.setImageForColoring(imagePath);
+                  _mainView?.setImageForColoring(imagePath);
                 }
               },
             ),
