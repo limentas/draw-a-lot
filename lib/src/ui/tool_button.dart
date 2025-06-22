@@ -3,7 +3,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class ToolButton extends StatefulWidget {
+class ToolButton extends StatelessWidget {
   ToolButton({
     Key? key,
     this.svgAssetName,
@@ -11,7 +11,7 @@ class ToolButton extends StatefulWidget {
     required this.color,
     required this.onPressed,
     this.disabled = false,
-    this.startToggled = false,
+    this.toggled = false,
   }) : super(key: key);
 
   final void Function() onPressed;
@@ -19,27 +19,10 @@ class ToolButton extends StatefulWidget {
   final IconData? iconData;
   final Color color;
   final bool disabled;
-  final bool startToggled;
-
-  void toggle(bool toggled) {}
-
-  @override
-  ToolButtonState createState() => ToolButtonState(startToggled);
-}
-
-class ToolButtonState extends State<ToolButton> {
-  ToolButtonState(this._toggled);
+  final bool toggled;
 
   final double _defaultButtonElevation = 4.0;
   final double _toggledButtonElevation = 0.0;
-
-  bool _toggled;
-
-  void setToggled(bool toggled) {
-    setState(() {
-      _toggled = toggled;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -51,7 +34,7 @@ class ToolButtonState extends State<ToolButton> {
       style: ElevatedButton.styleFrom(
               fixedSize: Size.square(buttonSize),
               backgroundColor:
-                  _toggled ? Colors.yellowAccent[100] : Colors.white,
+                  toggled ? Colors.yellowAccent[100] : Colors.white,
               overlayColor: Colors.yellowAccent[100],
               shape: CircleBorder(),
               padding: const EdgeInsets.all(0),
@@ -64,16 +47,16 @@ class ToolButtonState extends State<ToolButton> {
           WidgetState.pressed | WidgetState.selected: _toggledButtonElevation,
         }),
       ),
-      child: widget.svgAssetName != null
-          ? SvgPicture.asset(widget.svgAssetName!,
+      child: svgAssetName != null
+          ? SvgPicture.asset(svgAssetName!,
               width: buttonSize * 0.55,
-              colorFilter: ColorFilter.mode(widget.color, BlendMode.srcIn))
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn))
           : Icon(
-              widget.iconData,
+              iconData,
               size: buttonSize * 0.6,
-              color: widget.color,
+              color: color,
             ),
-      onPressed: widget.disabled ? null : widget.onPressed,
+      onPressed: disabled ? null : onPressed,
     );
   }
 }

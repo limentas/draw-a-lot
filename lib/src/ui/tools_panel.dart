@@ -91,27 +91,32 @@ class ToolsPanelState extends State<ToolsPanel> {
         ToolButton(
           color: Colors.black,
           svgAssetName: 'icons/brush_thickness.svg',
-          startToggled: _tool == PaintTool.Pen,
+          toggled: _tool == PaintTool.Pen,
           onPressed: () async {
-            _updateTool(PaintTool.Pen);
-            final buttonHeight = min(
-              80.0,
-              MediaQuery.of(context).size.height / 5 - 12,
-            );
-            var thickness = await showThicknessDialog(
-              context,
-              buttonHeight,
-              20.0,
-              _thickness,
-            );
-            if (thickness != null) _updateThickness(thickness);
+            // When we switch to this tool, we don't show thickness dialog
+            if (_tool != PaintTool.Pen) {
+              _updateTool(PaintTool.Pen);
+            } else {
+              // If we are already in this tool, show thickness dialog
+              final buttonHeight = min(
+                80.0,
+                MediaQuery.of(context).size.height / 5 - 12,
+              );
+              var thickness = await showThicknessDialog(
+                context,
+                buttonHeight,
+                20.0,
+                _thickness,
+              );
+              if (thickness != null) _updateThickness(thickness);
+            }
           },
         ),
         const Spacer(),
         ToolButton(
           iconData: Icons.format_color_fill,
           color: Colors.green.shade900,
-          startToggled: _tool == PaintTool.Fill,
+          toggled: _tool == PaintTool.Fill,
           disabled: kIsWeb == true || AppConfig.isX86_32,
           onPressed: () => _updateTool(PaintTool.Fill),
         ),
@@ -133,7 +138,7 @@ class ToolsPanelState extends State<ToolsPanel> {
             child: ToolButton(
               iconData: Icons.bug_report,
               color: Colors.indigo.shade900,
-              startToggled: _tool == PaintTool.Debug,
+              toggled: _tool == PaintTool.Debug,
               onPressed: () => _updateTool(PaintTool.Debug),
             )),
         const Spacer(flex: 10),
